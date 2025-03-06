@@ -39,13 +39,28 @@ def test_endpoint():
     return {"message": "Backend connection successful"}
 
 @app.post("/api/sql")
-def generate_sql(request: SQLRequest):
+def generate_sql(request: SQLRequest, db: Session = Depends(get_db)):
     """Generate SQL based on natural language description."""
     if not request.description:
         raise HTTPException(status_code=400, detail="Description cannot be empty")
     
+    print(f"Generating SQL for: {request.description}")
     sql = sql_generator.generate_sql(request.description, request.dialect)
-    return {"sql": sql}
+    print(f"Generated SQL: {sql}")
+    
+    # Add to history
+    try:
+        history_item = HistoryService.add_sql_history(
+            db, 
+            description=request.description, 
+            dialect=request.dialect, 
+            generated_sql=sql
+        )
+        print(f"Added to history with ID: {history_item.id}")
+        return {"sql": sql, "history_id": history_item.id}
+    except Exception as e:
+        print(f"Error adding to history: {str(e)}")
+        return {"sql": sql}
 
 @app.get("/api/history/sql")
 def get_sql_history(db: Session = Depends(get_db)):

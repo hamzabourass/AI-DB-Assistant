@@ -2,7 +2,6 @@ import streamlit as st
 from modules.home import render_home_page
 from modules.sql_generator import render_sql_generator_page
 from modules.db_knowledge import render_db_knowledge_page
-from modules.schema_designer import render_schema_designer_page
 from utils.api import check_api_status
 from utils.styles import load_css
 
@@ -24,9 +23,9 @@ def render_sidebar():
         
         # Navigation
         st.subheader("Navigation")
-        page = st.radio(
+        page = st.selectbox(
             "Select a feature:",
-            ["Home", "SQL Generator", "DB Knowledge", "Schema Designer"]
+            ["Home", "SQL Generator", "DB Knowledge"]
         )
         
         st.divider()
@@ -36,6 +35,8 @@ def render_sidebar():
         st.markdown("""
         This tool uses AI to simplify database-related tasks:
         - Generate SQL queries
+        - Manage database connections
+        - Browse database schemas
         - Answer database questions
         - Design database schemas
         """)
@@ -49,7 +50,7 @@ def render_sidebar():
         else:
             st.error("❌ API Disconnected", icon="❌")
         
-        st.caption("Version 0.2")
+        st.caption("Version 0.3")
     
     return page
 
@@ -57,21 +58,21 @@ def render_sidebar():
 def main():
     # Render sidebar and get selected page
     selected_page = render_sidebar()
-    
-    # Display the selected page
+
     if selected_page == "Home":
         render_home_page()
-    elif selected_page == "SQL Generator":
-        render_sql_generator_page()
     elif selected_page == "DB Knowledge":
         render_db_knowledge_page()
-    elif selected_page == "Schema Designer":
-        render_schema_designer_page()
+    elif selected_page == "SQL Generator":
+        render_sql_generator_page()
+
+
+
     
     # Footer
     st.markdown("""
     <div class="footer">
-        <p>AI Database Assistant v0.2 | Developed with Streamlit & AI</p>
+        <p>AI Database Assistant v0.3 | Developed with Streamlit & AI</p>
     </div>
     """, unsafe_allow_html=True)
 

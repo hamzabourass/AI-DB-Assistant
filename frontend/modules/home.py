@@ -3,86 +3,160 @@ from utils.api import check_api_status
 
 def render_home_page():
     """Render the home page of the application."""
-    st.markdown("<h1 class='main-header'>AI Database Assistant</h1>", unsafe_allow_html=True)
+    # Main title
+    st.title("AI Database Assistant")
     
+    # Introduction card
     st.markdown("""
-    <div class="card">
-        <h3>Welcome to the AI Database Assistant! 👋</h3>
-        <p>This intelligent tool leverages the power of AI to help you work with databases more efficiently. 
-        Whether you need to generate SQL queries, learn about database concepts, or design database schemas, 
+    <div style="
+        padding: 20px; 
+        border-radius: 8px; 
+        background-color: white; 
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    ">
+        <h3>Welcome to the AI Database Assistant 👋</h3>
+        <p>This tool helps you work with databases more efficiently by leveraging artificial intelligence.
+        Whether you need to write SQL queries, learn about database concepts, or design database schemas,
         we've got you covered.</p>
     </div>
     """, unsafe_allow_html=True)
     
     # Features section
-    st.markdown("<h2 class='sub-header'>Features</h2>", unsafe_allow_html=True)
+    st.markdown("""
+    <h2 style="margin-top: 30px; margin-bottom: 20px;">Features</h2>
+    """, unsafe_allow_html=True)
     
+    # Features in a card layout
     col1, col2, col3 = st.columns(3)
     
     with col1:
         st.markdown("""
-        <div class="card sql-feature feature-card">
-            <div class="feature-icon">📝</div>
+        <div style="
+            padding: 20px; 
+            border-radius: 8px; 
+            background-color: white; 
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            height: 100%;
+        ">
+            <div style="font-size: 2rem; margin-bottom: 10px;">📝</div>
             <h3>SQL Generator</h3>
-            <p>Convert natural language to SQL queries for any database dialect. Simply describe what data you need, and our AI will generate the appropriate SQL.</p>
-            <span class="status-badge success">Available</span>
+            <p>Convert natural language to SQL queries for any database dialect.</p>
+            <div style="
+                display: inline-block;
+                padding: 4px 8px;
+                background-color: #e6f4ea;
+                color: #137333;
+                border-radius: 4px;
+                font-size: 0.8rem;
+                font-weight: 500;
+            ">
+                Available
+            </div>
         </div>
         """, unsafe_allow_html=True)
     
     with col2:
         st.markdown("""
-        <div class="card knowledge-feature feature-card">
-            <div class="feature-icon">🔍</div>
+        <div style="
+            padding: 20px; 
+            border-radius: 8px; 
+            background-color: white; 
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            height: 100%;
+        ">
+            <div style="font-size: 2rem; margin-bottom: 10px;">🔍</div>
             <h3>DB Knowledge</h3>
-            <p>Get answers to database questions and learn best practices. Ask about concepts, syntax, optimization techniques, and more.</p>
-            <span class="status-badge pending">Coming Soon</span>
+            <p>Get answers to database questions and learn best practices.</p>
+            <div style="
+                display: inline-block;
+                padding: 4px 8px;
+                background-color: #fef7e0;
+                color: #b06000;
+                border-radius: 4px;
+                font-size: 0.8rem;
+                font-weight: 500;
+            ">
+                Coming Soon
+            </div>
         </div>
         """, unsafe_allow_html=True)
     
     with col3:
         st.markdown("""
-        <div class="card schema-feature feature-card">
-            <div class="feature-icon">🏗️</div>
+        <div style="
+            padding: 20px; 
+            border-radius: 8px; 
+            background-color: white; 
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            height: 100%;
+        ">
+            <div style="font-size: 2rem; margin-bottom: 10px;">🏗️</div>
             <h3>Schema Designer</h3>
-            <p>Generate database schemas from natural language descriptions. Describe your requirements and get a complete schema design.</p>
-            <span class="status-badge pending">Coming Soon</span>
+            <p>Generate database schemas from natural language descriptions.</p>
+            <div style="
+                display: inline-block;
+                padding: 4px 8px;
+                background-color: #fef7e0;
+                color: #b06000;
+                border-radius: 4px;
+                font-size: 0.8rem;
+                font-weight: 500;
+            ">
+                Coming Soon
+            </div>
         </div>
         """, unsafe_allow_html=True)
     
-    # System status
-    st.markdown("<h2 class='sub-header'>System Status</h2>", unsafe_allow_html=True)
+    # System status card
+    st.markdown("""
+    <h2 style="margin-top: 30px; margin-bottom: 20px;">System Status</h2>
+    """, unsafe_allow_html=True)
     
     api_status = check_api_status()
-    status_card = st.container()
     
-    with status_card:
-        if api_status["connected"]:
-            st.success("✅ Backend API is connected and running properly")
-            st.markdown("""
-            <div class="card">
-                <h4>All Systems Operational</h4>
-                <p>The application is fully functional. Feel free to explore all available features.</p>
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.error("❌ Cannot connect to backend API")
-            st.markdown("""
-            <div class="card">
-                <h4>Connection Issue Detected</h4>
-                <p>The application is running but cannot connect to the backend API. This means some features will not work properly.</p>
-                <ul>
-                    <li>Please ensure the API server is running at http://localhost:8000</li>
-                    <li>Check network connections and firewall settings</li>
-                    <li>Contact your administrator if the problem persists</li>
-                </ul>
-            </div>
-            """, unsafe_allow_html=True)
+    if api_status["connected"]:
+        status_color = "#e6f4ea"
+        status_text_color = "#137333"
+        status_message = "✅ Backend API is connected and running properly"
+    else:
+        status_color = "#fce8e6"
+        status_text_color = "#c5221f"
+        status_message = "❌ Cannot connect to backend API"
     
-    # Quick start section
-    st.markdown("<h2 class='sub-header'>Quick Start</h2>", unsafe_allow_html=True)
+    st.markdown(f"""
+    <div style="
+        padding: 20px; 
+        border-radius: 8px; 
+        background-color: {status_color}; 
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+        color: {status_text_color};
+    ">
+        <h3 style="color: {status_text_color};">System Status</h3>
+        <p style="font-weight: 500;">{status_message}</p>
+        
+        {"" if api_status["connected"] else """
+        <p><strong>Please check:</strong></p>
+        <ul>
+            <li>API server is running at http://localhost:8000</li>
+            <li>Network connections and firewall settings</li>
+        </ul>
+        """}
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Quick start card
     st.markdown("""
-    <div class="card">
-        <h4>How to use the AI Database Assistant:</h4>
+    <h2 style="margin-top: 30px; margin-bottom: 20px;">Quick Start</h2>
+    <div style="
+        padding: 20px; 
+        border-radius: 8px; 
+        background-color: white; 
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    ">
+        <h3>How to use the AI Database Assistant</h3>
         <ol>
             <li>Select a feature from the sidebar navigation</li>
             <li>Follow the instructions for each tool</li>
@@ -91,3 +165,25 @@ def render_home_page():
         </ol>
     </div>
     """, unsafe_allow_html=True)
+    
+    with st.expander("How it works"):
+        with st.container():
+            st.markdown("""
+                The AI Database Assistant uses natural language processing to understand your requests and generate 
+                appropriate database-related outputs:
+
+                - **SQL Generator**: Translates your description into valid SQL code
+                - **DB Knowledge**: Provides explanations about database concepts and best practices
+                - **Schema Designer**: Creates database schemas based on your requirements
+
+                All of this is powered by advanced language models that understand both natural language and database technologies.
+            """)
+            st.markdown("""
+                <style>
+                    div[data-testid="stContainer"] {
+                        padding: 20px; 
+                        border-radius: 8px; 
+                        background-color: #f8f9fa;
+                    }
+                </style>
+            """, unsafe_allow_html=True)

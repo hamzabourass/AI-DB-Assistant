@@ -12,6 +12,7 @@ class DBKnowledgeService:
 
 Question: {question}
 
+
 Provide a clear, accurate, and helpful answer. Include examples where appropriate to illustrate concepts. If you're unsure about any part of your answer, acknowledge the uncertainty rather than providing potentially incorrect information."""
     
     def answer_question(self, question, temperature=0.7):

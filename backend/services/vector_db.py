@@ -1,7 +1,9 @@
-"""Vector Database Service for storing and retrieving document embeddings."""
+"""Vector Database Service with FAISS and local embeddings."""
 import os
-from langchain_community.vectorstores import Chroma
-from langchain_openai import OpenAIEmbeddings
+import pickle
+import numpy as np
+from langchain_community.vectorstores import FAISS
+from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import DirectoryLoader, TextLoader
 from dotenv import load_dotenv
@@ -9,48 +11,37 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class VectorDBService:
-    """Service for managing vector database operations."""
+    """Service for managing vector database operations with FAISS."""
     
     def __init__(self, persist_directory="./database/vector_db"):
         """Initialize the Vector DB service."""
         # Create directory if it doesn't exist
         os.makedirs(persist_directory, exist_ok=True)
         
-        # Use the same API key as the LLM service
-        api_key = os.getenv("GROQ_API_KEY")
-        if not api_key:
-            raise ValueError("GROQ_API_KEY environment variable is not set in .env file")
+        # Path to store the FAISS index
+        self.index_path = os.path.join(persist_directory, "faiss_index")
         
-        # Initialize the embedding model
-        self.embeddings = OpenAIEmbeddings(
-            base_url="https://api.groq.com/openai/v1",
-            api_key=api_key
-        )
+        # Initialize the embedding model (local model, no API needed)
+        self.embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
         
-        # Check if vector database exists
-        self.persist_directory = persist_directory
-        if os.path.exists(persist_directory) and os.listdir(persist_directory):
-            # Load existing database
-            self.db = Chroma(
-                persist_directory=persist_directory,
-                embedding_function=self.embeddings
-            )
-            print(f"Loaded existing vector database with {self.db._collection.count()} documents")
+        # Try to load existing database
+        if os.path.exists(os.path.join(self.index_path, "index.faiss")):
+            try:
+                self.db = FAISS.load_local(
+                    self.index_path, 
+                    self.embeddings, 
+                    allow_dangerous_deserialization=True  # Add this parameter
+                )
+                print(f"Loaded existing vector database")
+            except Exception as e:
+                print(f"Error loading existing database: {e}")
+                self.db = None
         else:
-            # Create new database
-            self.db = Chroma(
-                persist_directory=persist_directory,
-                embedding_function=self.embeddings
-            )
-            print("Created new vector database")
+            self.db = None
+            print("No existing vector database found")
     
     def index_documents(self, documents_directory="./knowledge"):
-        """
-        Index documents from the specified directory.
-        
-        Args:
-            documents_directory: Directory containing knowledge base documents
-        """
+        """Index documents from the specified directory."""
         # Create directory if it doesn't exist
         os.makedirs(documents_directory, exist_ok=True)
         
@@ -78,11 +69,13 @@ class VectorDBService:
             
             print(f"Split into {len(splits)} chunks")
             
-            # Add documents to vector store
-            self.db.add_documents(splits)
+            # Create new FAISS index
+            self.db = FAISS.from_documents(splits, self.embeddings)
             
-            # Persist the database
-            self.db.persist()
+            # Save the index
+            self.db.save_local(self.index_path)
+            
+            print(f"Saved vector database to {self.index_path}")
             
             return True
         
@@ -91,35 +84,16 @@ class VectorDBService:
             return False
     
     def search(self, query, k=4):
-        """
-        Search for relevant documents based on the query.
-        
-        Args:
-            query: The search query
-            k: Number of documents to retrieve
-            
-        Returns:
-            List of retrieved documents
-        """
+        """Search for relevant documents based on the query."""
         try:
+            if self.db is None:
+                print("Vector database not initialized. Indexing documents...")
+                success = self.index_documents()
+                if not success:
+                    return []
+            
             docs = self.db.similarity_search(query, k=k)
             return docs
         except Exception as e:
             print(f"Error searching documents: {e}")
             return []
-
-# Example usage
-if __name__ == "__main__":
-    # Initialize vector database service
-    vector_db = VectorDBService()
-    
-    # Index documents
-    vector_db.index_documents()
-    
-    # Test search
-    results = vector_db.search("What is database normalization?")
-    
-    for doc in results:
-        print(f"Content: {doc.page_content[:100]}...")
-        print(f"Source: {doc.metadata.get('source', 'Unknown')}")
-        print("-" * 50)

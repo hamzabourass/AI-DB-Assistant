@@ -1,16 +1,20 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from services.sql_generator import SQLGeneratorService
-from services.db_knowledge import DBKnowledgeService # New import
+from services.db_knowledge import DBKnowledgeService
 from services.history_service import HistoryService
+from services.vector_db import VectorDBService
+from services.vector_db_inspector import VectorDBInspector
 from models.sql_request import SQLRequest
-from models.knowledge_request import KnowledgeRequest # New import
+from models.knowledge_request import KnowledgeRequest
 from models.history_request import HistoryDeleteRequest
 from models.history import ChatHistory, get_db
 from sqlalchemy.orm import Session
 from models.chat_request import SaveChatRequest, GetChatRequest, DeleteChatRequest, ChatListRequest
 from services.chat_history_service import ChatHistoryService
 import os
+import shutil
 
 
 app = FastAPI(title="AI Database Assistant API")
@@ -23,13 +27,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Global service variables
+sql_generator = None
+db_knowledge_service = None
+vector_db_service = None
+service_initialized = False
+
+# Initialize services
 try:
     sql_generator = SQLGeneratorService()
-    db_knowledge = DBKnowledgeService() 
+    db_knowledge_service = DBKnowledgeService() 
+    vector_db_service = VectorDBService()
     service_initialized = True
+    print("Services initialized successfully")
 except Exception as e:
     print(f"Error initializing services: {e}")
-    service_initialized = False
 
 
 @app.get("/")
@@ -46,6 +58,9 @@ def test_endpoint():
 @app.post("/api/sql")
 def generate_sql(request: SQLRequest, db: Session = Depends(get_db)):
     """Generate SQL based on natural language description."""
+    if not service_initialized:
+        raise HTTPException(status_code=503, detail="Services not initialized. Check API key.")
+        
     if not request.description:
         raise HTTPException(status_code=400, detail="Description cannot be empty")
     
@@ -94,6 +109,9 @@ def delete_sql_history(request: HistoryDeleteRequest, db: Session = Depends(get_
 @app.post("/api/knowledge")
 def answer_db_question(request: KnowledgeRequest):
     """Answer database-related questions."""
+    if not service_initialized:
+        raise HTTPException(status_code=503, detail="Services not initialized. Check API key.")
+    
     if not request.question:
         raise HTTPException(status_code=400, detail="Question cannot be empty")
     
@@ -111,15 +129,15 @@ def answer_db_question(request: KnowledgeRequest):
         
         if chat_history:
             messages = chat_history.get_messages()
-            answer = db_knowledge.answer_question_with_context(
+            answer = db_knowledge_service.answer_question_with_context(
                 conversation_id, 
                 request.question,
                 messages
             )
         else:
-            answer = db_knowledge.answer_question_with_context(conversation_id, request.question)
+            answer = db_knowledge_service.answer_question_with_context(conversation_id, request.question)
     else:
-        answer = db_knowledge.answer_question(request.question)
+        answer = db_knowledge_service.answer_question(request.question)
     
     print(f"Generated answer of length: {len(answer)}")
     
@@ -182,7 +200,8 @@ def delete_chat(conversation_id: str, db: Session = Depends(get_db)):
             raise HTTPException(status_code=404, detail="Chat conversation not found")
         
         # Also clear the memory for this conversation
-        db_knowledge.clear_conversation_memory(conversation_id)
+        if db_knowledge_service:
+            db_knowledge_service.clear_conversation_memory(conversation_id)
         
         return {"success": True}
     except HTTPException:
@@ -208,18 +227,164 @@ def create_new_chat(db: Session = Depends(get_db)):
         print(f"Error creating new chat: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error creating new chat: {str(e)}")
     
-@app.delete("/api/chat/{conversation_id}")
-def delete_chat(conversation_id: str, db: Session = Depends(get_db)):
-    """Delete a specific chat conversation by ID."""
-    success = ChatHistoryService.delete_chat(db, conversation_id)
-    
-    if not success:
-        raise HTTPException(status_code=404, detail="Chat conversation not found")
-    
-    return {"success": True}
-
-# First verify if any chats exist
 @app.get("/api/chat/count")
 def count_chats(db: Session = Depends(get_db)):
+    """Count the number of chat conversations."""
     count = db.query(ChatHistory).count()
-    return {"total_chats": count}  # If this returns 0, your database is empty
+    return {"total_chats": count}
+
+# Vector DB endpoints
+@app.get("/api/vector-db/stats")
+def get_vector_db_stats():
+    """Get statistics about the vector database."""
+    if not service_initialized:
+        raise HTTPException(status_code=503, detail="Services not initialized. Check API key.")
+    
+    try:
+        # Try to create VectorDBInspector
+        try:
+            inspector = VectorDBInspector()
+            stats = inspector.get_collection_statistics()
+            return stats
+        except ValueError as e:
+            # If the vector database doesn't exist, suggest initializing it
+            return JSONResponse(
+                status_code=404,
+                content={
+                    "error": f"Vector database not found: {str(e)}",
+                    "suggestion": "Run 'python scripts/initialize_faiss.py' to initialize the vector database with sample data"
+                }
+            )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": f"Error getting vector DB stats: {str(e)}",
+                "traceback": str(e.__traceback__)
+            }
+        )
+
+@app.get("/api/vector-db/documents")
+def get_vector_db_documents(limit: int = 100, offset: int = 0):
+    """Get documents from the vector database with pagination."""
+    if not service_initialized:
+        raise HTTPException(status_code=503, detail="Services not initialized. Check API key.")
+    
+    try:
+        # Try to create VectorDBInspector - with debug info
+        print(f"Creating VectorDBInspector...")
+        
+        try:
+            inspector = VectorDBInspector()
+            documents = inspector.get_all_documents(limit=limit, offset=offset)
+            total_count = inspector.get_document_count()
+            
+            return {
+                "documents": documents,
+                "total": total_count,
+                "limit": limit,
+                "offset": offset
+            }
+        except ValueError as e:
+            # Detailed error
+            print(f"ValueError in get_vector_db_documents: {e}")
+            return JSONResponse(
+                status_code=404,
+                content={
+                    "error": f"Vector database not found: {str(e)}",
+                    "suggestion": "Run 'python scripts/initialize_db.py' to initialize the vector database with sample data"
+                }
+            )
+    except Exception as e:
+        # Very detailed error
+        import traceback
+        print(f"Exception in get_vector_db_documents: {e}")
+        print(traceback.format_exc())
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": f"Error getting vector DB documents: {str(e)}",
+                "traceback": traceback.format_exc()
+            }
+        )
+
+@app.get("/api/vector-db/document/{doc_id}")
+def get_vector_db_document(doc_id: str):
+    """Get a specific document from the vector database by ID."""
+    if not service_initialized:
+        raise HTTPException(status_code=503, detail="Services not initialized. Check API key.")
+    
+    try:
+        inspector = VectorDBInspector()
+        document = inspector.get_document_by_id(doc_id)
+        
+        if not document:
+            return JSONResponse(
+                status_code=404,
+                content={"error": f"Document with ID {doc_id} not found"}
+            )
+        
+        return document
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Error getting document: {str(e)}"}
+        )
+
+@app.post("/api/vector-db/search")
+def search_vector_db(query: str, k: int = 5):
+    """Search for documents in the vector database."""
+    if not service_initialized:
+        raise HTTPException(status_code=503, detail="Services not initialized. Check API key.")
+    
+    if not query:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Search query cannot be empty"}
+        )
+    
+    try:
+        inspector = VectorDBInspector()
+        results = inspector.search_documents(query, k=k)
+        
+        return {"results": results}
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Error searching vector DB: {str(e)}"}
+        )
+
+@app.post("/api/vector-db/upload")
+async def upload_knowledge_document(file: UploadFile = File(...)):
+    """Upload a knowledge document to the vector database."""
+    if not service_initialized:
+        raise HTTPException(status_code=503, detail="Services not initialized. Check API key.")
+    
+    try:
+        # Create knowledge directory if it doesn't exist
+        knowledge_dir = "./knowledge"
+        os.makedirs(knowledge_dir, exist_ok=True)
+        
+        # Save uploaded file
+        file_path = os.path.join(knowledge_dir, file.filename)
+        
+        with open(file_path, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+        
+        # Re-index the vector database
+        success = vector_db_service.index_documents()
+        
+        if success:
+            return {"message": f"Document {file.filename} uploaded and indexed successfully"}
+        else:
+            # If indexing fails, delete the uploaded file
+            os.remove(file_path)
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Failed to index document"}
+            )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Error uploading document: {str(e)}"}
+        )

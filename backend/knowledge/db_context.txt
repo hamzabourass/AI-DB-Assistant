@@ -1,0 +1,79 @@
+Database Context and Usage:
+
+1. Business Rules:
+   - Each customer must have a unique email address.
+   - Orders cannot be placed without a valid customer ID.
+   - The `ORDER_STATUS` column in the `ORDERS` table can have the following values: 'PENDING', 'SHIPPED', 'DELIVERED', 'CANCELLED'.
+   - The `UNIT_PRICE` in the `ORDER_ITEMS` table must be greater than 0.
+   - A store must have a unique name and a valid physical address.
+
+2. Example Queries:
+   - Retrieve all customers with their full names and email addresses:
+     ```sql
+     SELECT FULL_NAME, EMAIL_ADDRESS FROM CUSTOMERS;
+     ```
+   - Find all orders placed by a specific customer (e.g., customer ID = 123):
+     ```sql
+     SELECT * FROM ORDERS WHERE CUSTOMER_ID = 123;
+     ```
+   - Get the total sales for each store:
+     ```sql
+     SELECT STORE_ID, SUM(ORDER_TOTAL) AS TOTAL_SALES
+     FROM ORDERS
+     GROUP BY STORE_ID;
+     ```
+   - List all products included in a specific order (e.g., order ID = 456):
+     ```sql
+     SELECT P.PRODUCT_NAME, OI.QUANTITY, OI.UNIT_PRICE
+     FROM ORDER_ITEMS OI
+     JOIN PRODUCTS P ON OI.PRODUCT_ID = P.PRODUCT_ID
+     WHERE OI.ORDER_ID = 456;
+     ```
+
+3. Common Scenarios:
+   - Adding a New Customer:
+     ```sql
+     INSERT INTO CUSTOMERS (CUSTOMER_ID, EMAIL_ADDRESS, FULL_NAME)
+     VALUES (CUSTOMER_SEQ.NEXTVAL, 'john.doe@example.com', 'John Doe');
+     ```
+   - Placing a New Order:
+     ```sql
+     INSERT INTO ORDERS (ORDER_ID, CUSTOMER_ID, ORDER_DATETIME, ORDER_STATUS, STORE_ID)
+     VALUES (ORDER_SEQ.NEXTVAL, 123, SYSDATE, 'PENDING', 1);
+     ```
+   - Updating an Order Status:
+     ```sql
+     UPDATE ORDERS
+     SET ORDER_STATUS = 'SHIPPED'
+     WHERE ORDER_ID = 456;
+     ```
+   - Deleting a Product:
+     ```sql
+     DELETE FROM PRODUCTS
+     WHERE PRODUCT_ID = 789;
+     ```
+
+4. Views and Their Usage:
+   - The `CUSTOMER_ORDER_PRODUCTS` view combines customer, order, and product information. It can be used to generate reports for customer purchase history.
+   - The `PRODUCT_REVIEWS` view provides average ratings and reviews for products. It is useful for analyzing product performance.
+   - The `STORE_ORDERS` view shows store-level order details, including total sales and order counts.
+
+5. Constraints and Validation:
+   - The `CUSTOMER_ID` column in the `CUSTOMERS` table is a primary key and cannot be NULL.
+   - The `EMAIL_ADDRESS` column in the `CUSTOMERS` table is unique and cannot be NULL.
+   - The `ORDER_TOTAL` column in the `ORDERS` table is calculated based on the sum of `UNIT_PRICE * QUANTITY` for all items in the order.
+
+6. Performance Tips:
+   - Use indexes on frequently queried columns like `CUSTOMER_ID`, `ORDER_ID`, and `PRODUCT_ID` to improve query performance.
+   - Avoid using `SELECT *` in production queries; instead, specify only the required columns.
+   - Regularly analyze and optimize queries using database tools like `EXPLAIN PLAN`.
+
+7. Troubleshooting:
+   - If an order cannot be placed, check if the `CUSTOMER_ID` and `STORE_ID` values are valid.
+   - If a product image is not displaying, verify that the `PRODUCT_IMAGE` and `IMAGE_MIME_TYPE` columns are correctly populated.
+   - If a query is slow, check if the relevant columns are indexed.
+
+8. Future Enhancements:
+   - Add a `LOYALTY_POINTS` column to the `CUSTOMERS` table to track customer loyalty.
+   - Introduce a `DISCOUNT` column in the `ORDER_ITEMS` table to support promotional offers.
+   - Create a new table for `EMPLOYEES` to manage store staff information.

@@ -1,0 +1,82 @@
+Database Schema For Customer Orders Description:
+This documentation provides a detailed overview of the database structure, including tables, columns, data types, constraints, and relationships.
+
+1. Sequences:
+   - DEPT_SEQ: A sequence starting at 1, incrementing by 1, with a maximum value of 20.
+   - EMP_SEQ: A sequence starting at 1, incrementing by 1, with a maximum value of 20.
+   - ISEQ$$_374150020: A sequence starting at 1, incrementing by 1, with no maximum value.
+   - ISEQ$$_374150025: A sequence starting at 1, incrementing by 1, with no maximum value.
+   - ISEQ$$_374150031: A sequence starting at 1, incrementing by 1, with no maximum value.
+   - ISEQ$$_374150038: A sequence starting at 1, incrementing by 1, with no maximum value.
+
+2. Tables:
+   - CUSTOMERS:
+     - Columns:
+       * CUSTOMER_ID: A unique identifier for each customer (NUMBER, not nullable).
+       * EMAIL_ADDRESS: The email address of the customer (VARCHAR2, max length 255, not nullable).
+       * FULL_NAME: The full name of the customer (VARCHAR2, max length 255, not nullable).
+     - Indexes:
+       * CUSTOMERS_PK: A unique index on CUSTOMER_ID.
+       * CUSTOMERS_EMAIL_U: A unique index on EMAIL_ADDRESS.
+       * CUSTOMERS_NAME_I: A non-unique index on FULL_NAME.
+
+   - ORDERS:
+     - Columns:
+       * ORDER_ID: A unique identifier for each order (NUMBER, not nullable).
+       * CUSTOMER_ID: The ID of the customer who placed the order (NUMBER, not nullable).
+       * ORDER_DATETIME: The date and time when the order was placed (TIMESTAMP(6), not nullable).
+       * ORDER_STATUS: The status of the order (VARCHAR2, max length 10, not nullable).
+       * STORE_ID: The ID of the store where the order was placed (NUMBER, not nullable).
+     - Indexes:
+       * ORDERS_PK: A unique index on ORDER_ID.
+       * ORDERS_CUSTOMER_ID_I: A non-unique index on CUSTOMER_ID.
+       * ORDERS_STORE_ID_I: A non-unique index on STORE_ID.
+
+   - ORDER_ITEMS:
+     - Columns:
+       * ORDER_ID: The ID of the order (NUMBER, not nullable).
+       * LINE_ITEM_ID: The ID of the line item within the order (NUMBER, not nullable).
+       * PRODUCT_ID: The ID of the product in the order (NUMBER, not nullable).
+       * QUANTITY: The quantity of the product ordered (NUMBER, not nullable).
+       * UNIT_PRICE: The price per unit of the product (NUMBER, precision 22, scale 2, not nullable).
+     - Indexes:
+       * ORDER_ITEMS_PK: A unique index on ORDER_ID and LINE_ITEM_ID.
+       * ORDER_ITEMS_PRODUCT_U: A unique index on PRODUCT_ID and ORDER_ID.
+
+   - PRODUCTS:
+     - Columns:
+       * PRODUCT_ID: A unique identifier for each product (NUMBER, not nullable).
+       * PRODUCT_NAME: The name of the product (VARCHAR2, max length 255, not nullable).
+       * UNIT_PRICE: The price of the product (NUMBER, precision 22, scale 2, nullable).
+       * PRODUCT_DETAILS: Additional details about the product (BLOB, nullable).
+       * PRODUCT_IMAGE: An image of the product (BLOB, nullable).
+       * IMAGE_FILENAME: The filename of the product image (VARCHAR2, max length 512, nullable).
+       * IMAGE_MIME_TYPE: The MIME type of the product image (VARCHAR2, max length 512, nullable).
+       * IMAGE_CHARSET: The character set of the product image (VARCHAR2, max length 512, nullable).
+       * IMAGE_LAST_UPDATED: The date when the product image was last updated (DATE, nullable).
+     - Indexes:
+       * PRODUCTS_PK: A unique index on PRODUCT_ID.
+
+   - STORES:
+     - Columns:
+       * STORE_ID: A unique identifier for each store (NUMBER, not nullable).
+       * STORE_NAME: The name of the store (VARCHAR2, max length 255, not nullable).
+       * PHYSICAL_ADDRESS: The physical address of the store (VARCHAR2, max length 512, nullable).
+       * LATITUDE: The latitude of the store's location (NUMBER, nullable).
+       * LONGITUDE: The longitude of the store's location (NUMBER, nullable).
+       * WEB_ADDRESS: The web address of the store (VARCHAR2, max length 100, nullable).
+       * LOGO: The logo of the store (BLOB, nullable).
+       * LOGO_FILENAME: The filename of the store logo (VARCHAR2, max length 512, nullable).
+       * LOGO_MIME_TYPE: The MIME type of the store logo (VARCHAR2, max length 512, nullable).
+       * LOGO_CHARSET: The character set of the store logo (VARCHAR2, max length 512, nullable).
+       * LOGO_LAST_UPDATED: The date when the store logo was last updated (DATE, nullable).
+     - Indexes:
+       * STORES_PK: A unique index on STORE_ID.
+       * STORE_NAME_U: A unique index on STORE_NAME.
+
+3. Views:
+   - CUSTOMER_ORDER_PRODUCTS: A view that combines customer, order, and product information.
+   - PRODUCT_ORDERS: A view that shows product order details.
+   - PRODUCT_REVIEWS: A view that displays product reviews and ratings.
+   - STORE_ORDERS: A view that provides store-level order information.
+   - STORE_ORDERS_STATUS: A view that shows the status of store orders.

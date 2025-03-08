@@ -3,6 +3,7 @@ from modules.home import render_home_page
 from modules.sql_generator import render_sql_generator_page
 from modules.db_knowledge import render_db_knowledge_page
 from modules.vector_db_explorer import render_vector_db_explorer_page
+from modules.sqlite_db_explorer import render_sqlite_db_explorer_page  # New import
 from utils.api import check_api_status
 from utils.styles import load_css
 
@@ -26,23 +27,23 @@ def render_sidebar():
         st.subheader("Navigation")
         page = st.selectbox(
             "Select a feature:",
-            ["Home", "Database Assistant Chat", "Vector Database Explorer"]
+            ["Home", "Database Assistant Chat", "Vector Database Explorer", "SQLite Explorer"]  # Added new option
         )
         
         st.divider()
         
-        # About section
-        st.markdown("### About")
-        st.markdown("""
-        This tool uses AI to simplify database-related tasks:
-        - Generate SQL queries
-        - Manage database connections
-        - Browse database schemas
-        - Answer database questions
-        - Design database schemas
-        """)
+        # # About section
+        # st.markdown("### About")
+        # st.markdown("""
+        # This tool uses AI to simplify database-related tasks:
+        # - Generate SQL queries
+        # - Manage database connections
+        # - Browse database schemas
+        # - Answer database questions
+        # - Design database schemas
+        # """)
         
-        st.divider()
+        # st.divider()
         
         # Backend status indicator
         api_status = check_api_status()
@@ -68,13 +69,9 @@ def main():
         render_sql_generator_page()
     elif selected_page == "Vector Database Explorer":
         render_vector_db_explorer_page()
-    
-    # Footer
-    st.markdown("""
-    <div class="footer">
-        <p>AI Database Assistant v0.4 | Developed with Streamlit & AI</p>
-    </div>
-    """, unsafe_allow_html=True)
+    elif selected_page == "SQLite Explorer":  # Added new option
+        render_sqlite_db_explorer_page()
+   
 
 if __name__ == "__main__":
     main()

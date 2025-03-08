@@ -4,126 +4,94 @@ import time
 import uuid
 
 def render_db_knowledge_page():
-    """Render the Database Knowledge page with a chat-like interface."""
+    """Render the Database Knowledge page with Streamlit's built-in chat components."""
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
         
     if "conversation_id" not in st.session_state:
         st.session_state.conversation_id = str(uuid.uuid4())
 
-    st.markdown("""
-    <style>
-    .chat-message {
-        padding: 1rem;
-        border-radius: 15px;
-        margin: 0.5rem 0;
-        max-width: 80%;
-        word-wrap: break-word;
-    }
-    .user-message {
-        background: #f1f0f0;
-        margin-left: auto;
-    }
-    .bot-message {
-        background: #e3f2fd;
-        margin-right: auto;
-    }
-    .question-chip {
-        padding: 0.5rem 1rem;
-        margin: 0.25rem;
-        border-radius: 20px;
-        background: #f0f2f6;
-        cursor: pointer;
-        transition: 0.3s;
-    }
-    .question-chip:hover {
-        background: #e2e5e9;
-    }
-    .stTextInput>div>input {
-        padding: 1rem 1.5rem !important;
-        border-radius: 25px !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+    st.title("Database Knowledge")
 
-    st.markdown("""
-    <div style="display: flex; align-items: center; gap: 1rem;">
-        <h1 class='main-header'>Database Knowledge</h1>
-    </div>
-    """, unsafe_allow_html=True)
-
-    chat_container = st.container()
-
+    # Display debug info in sidebar if checked
     if st.sidebar.checkbox("Show Debug Info", False):
         st.sidebar.write(f"Conversation ID: {st.session_state.conversation_id}")
         st.sidebar.write(f"Message Count: {len(st.session_state.chat_history)}")
-        if st.button("🗑️ Clear Conversation"):
+        if st.sidebar.button("🗑️ Clear Conversation"):
             st.session_state.chat_history = []
             st.session_state.conversation_id = str(uuid.uuid4())
             st.rerun()
 
-    with st.form("chat_input", clear_on_submit=True):
-        col1, col2 = st.columns([6, 1])
+    # Display chat messages from history
+    for message in st.session_state.chat_history:
+        if message["role"] == "user":
+            with st.chat_message("user"):
+                st.write(message["content"])
+        else:
+            with st.chat_message("assistant"):
+                st.write(message["content"])
+
+    # Display example questions if no chat history
+    if not st.session_state.chat_history:
+        # st.info("### Database Knowledge Assistant")
+        st.write("Ask questions about database concepts, SQL syntax, and optimization techniques.")
+        # st.write("The assistant maintains context between questions, so you can ask follow-up questions.")
+        
+        col1, col2, col3 = st.columns(3)
         with col1:
-            user_input = st.text_input(
-                "Ask a question about databases:",
-                placeholder="Type your question here...",
-                label_visibility="collapsed",
-                key="input_text"
-            )
+            if st.button("What is database normalization?", use_container_width=True):
+                process_question("What is database normalization?")
+                st.rerun()
         with col2:
-            submitted = st.form_submit_button("➤", use_container_width=True)
+            if st.button("How to use indexes?", use_container_width=True):
+                process_question("How to use indexes?")
+                st.rerun()
+        with col3:
+            if st.button("Explain JOIN types", use_container_width=True):
+                process_question("Explain JOIN types")
+                st.rerun()
 
-        if submitted and user_input:
-            process_question(user_input)
-            st.rerun()
-
-    with chat_container:
-        for msg in st.session_state.chat_history:
-            if msg["role"] == "user":
-                st.markdown(
-                    f"<div class='chat-message user-message'>{msg['content']}</div>", 
-                    unsafe_allow_html=True
-                )
-            else:
-                st.markdown(
-                    f"<div class='chat-message bot-message'>{msg['content']}</div>", 
-                    unsafe_allow_html=True
-                )
-
-        if not st.session_state.chat_history:
-            st.markdown("""
-            <div style="text-align: center; padding: 2rem 0; color: #666;">
-                <h3>Database Knowledge Assistant</h3>
-                <p>Ask questions about database concepts, SQL syntax, and optimization techniques.</p>
-                <p>The assistant maintains context between questions, so you can ask follow-up questions.</p>
-                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center;">
-                    <div class="question-chip">What is database normalization?</div>
-                    <div class="question-chip">How to use indexes?</div>
-                    <div class="question-chip">Explain JOIN types</div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+    # Chat input
+    if prompt := st.chat_input("Ask a question about databases:"):
+        process_question(prompt)
+        st.rerun()
 
 def process_question(question):
     """Process a user question and add to chat history."""
+    # Add user message to chat history
     st.session_state.chat_history.append({"role": "user", "content": question})
     
-    with st.spinner("Thinking..."):
+    # Display user message immediately
+    with st.chat_message("user"):
+        st.write(question)
+    
+    # Display assistant response with thinking indicator
+    with st.chat_message("assistant"):
+        message_placeholder = st.empty()
+        message_placeholder.info("Thinking...")
+        
+        # Get response from backend
         result = answer_db_question(
             question, 
             st.session_state.conversation_id
         )
         
         if result["success"]:
+            # Update chat history with bot response
+            response = result["answer"]
             st.session_state.chat_history.append({
                 "role": "bot", 
-                "content": result["answer"]
+                "content": response
             })
             
+            # Display final response
+            message_placeholder.write(response)
+            
+            # Update conversation ID if provided
             if "conversation_id" in result and result["conversation_id"]:
                 st.session_state.conversation_id = result["conversation_id"]
                 
+            # Save chat history
             try:
                 save_chat(
                     st.session_state.conversation_id,
@@ -133,8 +101,10 @@ def process_question(question):
             except Exception as e:
                 print(f"Error saving chat: {e}")
         else:
+            # Handle error
             error_message = f"Sorry, I couldn't process your question. {result.get('error', '')} {result.get('message', '')}"
             st.session_state.chat_history.append({
                 "role": "bot", 
                 "content": error_message
             })
+            message_placeholder.error(error_message)

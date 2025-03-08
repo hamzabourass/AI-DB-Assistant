@@ -118,7 +118,7 @@ def delete_sql_history(history_id):
             "message": str(e)
         }
 
-def answer_db_question(question, conversation_id=None):
+def answer_db_question(question, conversation_id=None, messages=None):
     """Get answer to a database-related question with optional conversation context."""
     try:
         payload = {"question": question}
@@ -127,10 +127,14 @@ def answer_db_question(question, conversation_id=None):
         if conversation_id:
             payload["conversation_id"] = conversation_id
             
+        # Add messages to payload if provided
+        if messages:
+            payload["messages"] = messages
+            
         response = requests.post(
             f"{API_URL}/api/knowledge",
             json=payload,
-            timeout=15  # Longer timeout for knowledge answers
+            timeout=30  # Longer timeout for knowledge answers
         )
         
         if response.status_code == 200:

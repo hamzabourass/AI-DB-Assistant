@@ -1,4 +1,3 @@
-"""LLM service for handling interactions with language models."""
 from langchain_openai import ChatOpenAI
 import os
 from dotenv import load_dotenv
@@ -18,12 +17,14 @@ class LLMService:
         self.llm = ChatOpenAI(
             base_url="https://api.groq.com/openai/v1",
             api_key=api_key,
-            model_name="llama3-70b-8192"
+            model_name="llama3-70b-8192",
+            temperature=0.7
         )
     
     def generate_text(self, prompt, temperature=0.7):
         """Generate text based on the provided prompt."""
         try:
+            # For backwards compatibility
             response = self.llm.invoke(prompt)
             return response.content
         except Exception as e:

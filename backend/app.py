@@ -1,3 +1,4 @@
+import uuid
 from fastapi import FastAPI, HTTPException, Depends, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -109,6 +110,8 @@ def delete_sql_history(request: HistoryDeleteRequest, db: Session = Depends(get_
 @app.post("/api/knowledge")
 def answer_db_question(request: KnowledgeRequest):
     """Answer database-related questions."""
+    import uuid  # Make sure uuid is imported here
+    
     if not service_initialized:
         raise HTTPException(status_code=503, detail="Services not initialized. Check API key.")
     
@@ -117,33 +120,41 @@ def answer_db_question(request: KnowledgeRequest):
     
     print(f"Answering question: {request.question}")
     
-    conversation_id = request.conversation_id if hasattr(request, 'conversation_id') else None
+    # Get conversation_id from request
+    conversation_id = request.conversation_id
     
-    if conversation_id:
-        chat_history = None
+    # Get messages from request
+    messages = request.messages
+    
+    # If conversation_id exists but no messages provided, try to get from database
+    if conversation_id and not messages:
         db = next(get_db())
         try:
             chat_history = ChatHistoryService.get_chat(db, conversation_id)
+            if chat_history:
+                messages = chat_history.get_messages()
         except Exception as e:
             print(f"Error getting chat history: {e}")
-        
-        if chat_history:
-            messages = chat_history.get_messages()
-            answer = db_knowledge_service.answer_question_with_context(
-                conversation_id, 
-                request.question,
-                messages
-            )
-        else:
-            answer = db_knowledge_service.answer_question_with_context(conversation_id, request.question)
+    
+    # Generate answer
+    if conversation_id:
+        answer = db_knowledge_service.answer_question_with_context(
+            conversation_id, 
+            request.question,
+            messages
+        )
     else:
-        answer = db_knowledge_service.answer_question(request.question)
+        # Create a new conversation ID
+        conversation_id = str(uuid.uuid4())
+        answer = db_knowledge_service.answer_question_with_context(
+            conversation_id, 
+            request.question
+        )
     
     print(f"Generated answer of length: {len(answer)}")
     
     return {"answer": answer, "conversation_id": conversation_id}
 
-# Add chat history endpoints
 @app.post("/api/chat/save")
 def save_chat(request: SaveChatRequest, db: Session = Depends(get_db)):
     """Save chat conversation history."""

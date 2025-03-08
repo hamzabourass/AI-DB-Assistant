@@ -11,7 +11,7 @@ def render_db_knowledge_page():
     if "conversation_id" not in st.session_state:
         st.session_state.conversation_id = str(uuid.uuid4())
 
-    st.title("Database Knowledge")
+    st.title("Database Assistant")
 
     # Display debug info in sidebar if checked
     if st.sidebar.checkbox("Show Debug Info", False):
@@ -70,10 +70,11 @@ def process_question(question):
         message_placeholder = st.empty()
         message_placeholder.info("Thinking...")
         
-        # Get response from backend
+        # Get response from backend, passing the current chat history
         result = answer_db_question(
             question, 
-            st.session_state.conversation_id
+            st.session_state.conversation_id,
+            st.session_state.chat_history
         )
         
         if result["success"]:

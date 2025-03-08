@@ -60,21 +60,25 @@ class ChatHistory(Base):
             "updated_at": self.updated_at.isoformat()
         }
     
-    def get_messages(self):
-        """Convert stored JSON string to messages list."""
-        if self.messages:
-            import json
-            return json.loads(self.messages)
-        return []
-    
-    # In ChatHistory model, modify set_messages:
     def set_messages(self, messages_list):
+        """Convert messages list to JSON string."""
         import json
         # Add validation
         if not isinstance(messages_list, list):
             raise ValueError("Messages must be a list")
         # Ensure proper serialization
         self.messages = json.dumps(messages_list, ensure_ascii=False)
+
+    def get_messages(self):
+        """Convert stored JSON string to messages list."""
+        if self.messages:
+            import json
+            try:
+                return json.loads(self.messages)
+            except json.JSONDecodeError:
+                print("Invalid JSON in messages field")
+                return []
+        return []
 
         
 # Create tables

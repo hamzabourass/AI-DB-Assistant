@@ -16,7 +16,7 @@ class LLMService:
         
         self.llm = ChatOpenAI(
             base_url="https://api.groq.com/openai/v1",
-            api_key=api_key,
+            api_key="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",
             model_name="llama3-70b-8192",
             temperature=0.7
         )

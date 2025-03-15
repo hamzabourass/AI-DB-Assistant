@@ -8,180 +8,180 @@ import json
 from pathlib import Path
 
 def render_sqlite_db_explorer_page():
-    """Render a page to explore the SQLite database."""
-    st.title("SQLite Database Explorer")
+    """Affiche une page pour explorer la base de données SQLite."""
+    st.title("Explorateur de Base de Données SQLite")
     
-    # Path to the database - adjusted for backend folder
-    # Get the current directory (frontend)
+    # Chemin vers la base de données - ajusté pour le dossier backend
+    # Récupération du répertoire actuel (frontend)
     current_dir = Path.cwd()
-    # Navigate to the parent directory and then to backend/database
+    # Navigation vers le répertoire parent puis vers backend/database
     backend_dir = current_dir.parent / "backend"
     db_path = backend_dir / "database" / "history.db"
     
-    # Check if database exists
+    # Vérification de l'existence de la base de données
     if not db_path.exists():
-        st.error(f"Database file not found at: {db_path}")
-        st.info("Please verify the database path in the code if you're sure the database exists.")
+        st.error(f"Fichier de base de données introuvable à : {db_path}")
+        st.info("Veuillez vérifier le chemin de la base de données dans le code si vous êtes sûr que la base de données existe.")
         
-        # Debugging info
-        with st.expander("Debug Info"):
-            st.write("Current directory:", current_dir)
-            st.write("Expected backend directory:", backend_dir)
-            st.write("Expected database path:", db_path)
-            st.write("Parent directory contents:", [str(p) for p in current_dir.parent.iterdir()])
+        # Informations de débogage
+        with st.expander("Infos de débogage"):
+            st.write("Répertoire actuel :", current_dir)
+            st.write("Répertoire backend attendu :", backend_dir)
+            st.write("Chemin de base de données attendu :", db_path)
+            st.write("Contenu du répertoire parent :", [str(p) for p in current_dir.parent.iterdir()])
             if backend_dir.exists():
-                st.write("Backend directory contents:", [str(p) for p in backend_dir.iterdir()])
+                st.write("Contenu du répertoire backend :", [str(p) for p in backend_dir.iterdir()])
                 db_dir = backend_dir / "database"
                 if db_dir.exists():
-                    st.write("Database directory contents:", [str(p) for p in db_dir.iterdir()])
+                    st.write("Contenu du répertoire database :", [str(p) for p in db_dir.iterdir()])
         
-        # Custom path input
+        # Saisie de chemin personnalisé
         custom_path = st.text_input(
-            "Enter custom database path:",
+            "Entrez un chemin de base de données personnalisé :",
             value=str(db_path)
         )
         
-        if st.button("Try Custom Path"):
+        if st.button("Essayer le chemin personnalisé"):
             db_path = Path(custom_path)
             if not db_path.exists():
-                st.error(f"Database still not found at: {custom_path}")
+                st.error(f"Base de données toujours introuvable à : {custom_path}")
                 return
-            st.success(f"Database found at: {custom_path}")
+            st.success(f"Base de données trouvée à : {custom_path}")
         else:
             return
     
     try:
-        # Connect to SQLite database
+        # Connexion à la base de données SQLite
         conn = sqlite3.connect(db_path)
         
-        # Get list of tables
+        # Récupération de la liste des tables
         cursor = conn.cursor()
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
         tables = cursor.fetchall()
         
         if not tables:
-            st.warning("No tables found in the database.")
+            st.warning("Aucune table trouvée dans la base de données.")
             return
             
-        # Format table names for selection
+        # Formatage des noms de tables pour la sélection
         table_names = [table[0] for table in tables]
         
-        # Database info
-        st.success(f"Connected to database: {db_path}")
-        st.write(f"Found {len(table_names)} tables")
+        # Infos de la base de données
+        st.success(f"Connecté à la base de données : {db_path}")
+        st.write(f"Trouvé {len(table_names)} tables")
         
-        # Select table to view
-        selected_table = st.selectbox("Select a table to view:", table_names)
+        # Sélection de la table à afficher
+        selected_table = st.selectbox("Sélectionnez une table à afficher :", table_names)
         
         if selected_table:
-            # Get table info
+            # Récupération des informations de la table
             cursor.execute(f"PRAGMA table_info({selected_table})")
             columns_info = cursor.fetchall()
             
-            # Show table schema
-            with st.expander("Table Schema", expanded=False):
+            # Affichage du schéma de la table
+            with st.expander("Schéma de la table", expanded=False):
                 schema_df = pd.DataFrame(columns_info, 
                                          columns=['cid', 'name', 'type', 'notnull', 'default_value', 'pk'])
                 st.dataframe(schema_df)
             
-            # Get row count
+            # Récupération du nombre de lignes
             cursor.execute(f"SELECT COUNT(*) FROM {selected_table}")
             row_count = cursor.fetchone()[0]
-            st.write(f"Total rows: {row_count}")
+            st.write(f"Nombre total de lignes : {row_count}")
             
-            # Query options
-            st.subheader("Query Options")
+            # Options de requête
+            st.subheader("Options de requête")
             
-            # Get column names
+            # Récupération des noms de colonnes
             column_names = [col[1] for col in columns_info]
             
-            # Option to select specific columns
+            # Option pour sélectionner des colonnes spécifiques
             selected_columns = st.multiselect(
-                "Select columns to display (leave empty for all):",
+                "Sélectionnez les colonnes à afficher (laissez vide pour toutes) :",
                 options=column_names,
                 default=[]
             )
             
-            # Filter options
-            with st.expander("Filter Options", expanded=False):
+            # Options de filtrage
+            with st.expander("Options de filtrage", expanded=False):
                 filter_column = st.selectbox(
-                    "Filter by column:",
-                    options=["None"] + column_names
+                    "Filtrer par colonne :",
+                    options=["Aucune"] + column_names
                 )
                 
                 filter_value = None
-                if filter_column != "None":
-                    filter_value = st.text_input("Filter value:")
+                if filter_column != "Aucune":
+                    filter_value = st.text_input("Valeur de filtre :")
             
-            # Limit results option
-            limit = st.number_input("Limit number of rows:", min_value=1, max_value=1000, value=100)
+            # Option de limitation des résultats
+            limit = st.number_input("Limiter le nombre de lignes :", min_value=1, max_value=1000, value=100)
             
-            # Execute query button
-            if st.button("Execute Query"):
-                # Construct SQL query
+            # Bouton d'exécution de la requête
+            if st.button("Exécuter la requête"):
+                # Construction de la requête SQL
                 columns_str = ", ".join(selected_columns) if selected_columns else "*"
                 query = f"SELECT {columns_str} FROM {selected_table}"
                 
-                # Add WHERE clause if filter is applied
-                if filter_column != "None" and filter_value:
+                # Ajout de la clause WHERE si un filtre est appliqué
+                if filter_column != "Aucune" and filter_value:
                     query += f" WHERE {filter_column} LIKE '%{filter_value}%'"
                 
-                # Add LIMIT clause
+                # Ajout de la clause LIMIT
                 query += f" LIMIT {limit}"
                 
-                # Execute and display results
+                # Exécution et affichage des résultats
                 results = pd.read_sql_query(query, conn)
                 
-                st.subheader("Query Results")
+                st.subheader("Résultats de la requête")
                 st.code(query, language="sql")
                 
                 if results.empty:
-                    st.info("No results found.")
+                    st.info("Aucun résultat trouvé.")
                 else:
                     st.dataframe(results, use_container_width=True)
                     
-                    # Download option
+                    # Option de téléchargement
                     csv = results.to_csv(index=False).encode('utf-8')
                     st.download_button(
-                        "Download as CSV",
+                        "Télécharger en CSV",
                         csv,
                         f"{selected_table}_export.csv",
                         "text/csv",
                         key='download-csv'
                     )
             
-            # Option for custom SQL query
-            st.subheader("Custom SQL Query")
+            # Option pour requête SQL personnalisée
+            st.subheader("Requête SQL personnalisée")
             custom_query = st.text_area(
-                "Enter a custom SQL query:",
+                "Entrez une requête SQL personnalisée :",
                 value=f"SELECT * FROM {selected_table} LIMIT 10;"
             )
             
-            if st.button("Run Custom Query"):
+            if st.button("Exécuter la requête personnalisée"):
                 try:
                     custom_results = pd.read_sql_query(custom_query, conn)
                     
                     if custom_results.empty:
-                        st.info("No results found.")
+                        st.info("Aucun résultat trouvé.")
                     else:
                         st.dataframe(custom_results, use_container_width=True)
                         
-                        # Download option for custom query
+                        # Option de téléchargement pour la requête personnalisée
                         custom_csv = custom_results.to_csv(index=False).encode('utf-8')
                         st.download_button(
-                            "Download Custom Query Results",
+                            "Télécharger les résultats de la requête personnalisée",
                             custom_csv,
-                            "custom_query_export.csv",
+                            "requete_personnalisee_export.csv",
                             "text/csv",
                             key='download-custom-csv'
                         )
                 except Exception as e:
-                    st.error(f"Error executing query: {str(e)}")
+                    st.error(f"Erreur lors de l'exécution de la requête : {str(e)}")
         
-        # Close connection
+        # Fermeture de la connexion
         conn.close()
         
     except sqlite3.Error as e:
-        st.error(f"Database error: {str(e)}")
+        st.error(f"Erreur de base de données : {str(e)}")
     except Exception as e:
-        st.error(f"An error occurred: {str(e)}")
+        st.error(f"Une erreur s'est produite : {str(e)}")

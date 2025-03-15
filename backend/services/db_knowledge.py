@@ -1,26 +1,26 @@
-"""Service for answering database knowledge questions."""
+"""Service pour répondre aux questions sur les bases de données."""
 from models.llm import LLMService
 from services.vector_db import VectorDBService
 import uuid
 
 class DBKnowledgeService:
-    """Service for answering database knowledge questions using LLM with RAG."""
+    """Service pour répondre aux questions sur les bases de données en utilisant un LLM avec RAG."""
     
     def __init__(self):
-        """Initialize the DB Knowledge service."""
+        """Initialise le service de connaissances DB."""
         self.llm_service = LLMService()
         self.vector_db = VectorDBService()
         self.conversation_memories = {}
         
     def clear_conversation_memory(self, conversation_id):
-        """Clear conversation memory for the given ID."""
+        """Efface la mémoire de conversation pour l'ID donné."""
         if conversation_id in self.conversation_memories:
             del self.conversation_memories[conversation_id]
             return True
         return False
     
     def format_conversation_history(self, messages):
-        """Format the conversation history into a string."""
+        """Formate l'historique de conversation en une chaîne de caractères."""
         if not messages:
             return ""
         
@@ -30,101 +30,88 @@ class DBKnowledgeService:
             content = msg.get("content", "")
             
             if role == "user":
-                formatted_history += f"Human: {content}\n"
+                formatted_history += f"Humain: {content}\n"
             elif role in ["bot", "assistant"]:
-                formatted_history += f"AI: {content}\n"
+                formatted_history += f"IA: {content}\n"
         
         return formatted_history
     
     def summarize_conversation(self, conversation_history, max_length=1000):
-        """Summarize the conversation history if it's too long."""
-        # Check if the history needs summarization
+        """Résume l'historique de conversation s'il est trop long."""
         if len(conversation_history) <= max_length:
             return conversation_history
         
-        # Get the last few exchanges to preserve recent context
         last_exchanges = ""
         lines = conversation_history.strip().split('\n')
-        # Keep the last 4-6 lines intact (2-3 complete exchanges)
         if len(lines) > 6:
             last_exchanges = '\n'.join(lines[-6:])
         
-        # Create a summarization prompt
-        prompt = f"""Summarize the following conversation between a human and an AI assistant about databases. 
-Focus on key points, questions asked, and important information shared.
-Keep technical database concepts, table names, and SQL syntax mentioned.
+        prompt = f"""Résume la conversation suivante entre un humain et un assistant IA à propos des bases de données. 
+Concentre-toi sur les points clés, les questions posées et les informations importantes partagées.
+Conserve les concepts techniques de base de données, les noms de tables et la syntaxe SQL mentionnés.
 
 CONVERSATION:
 {conversation_history[:-len(last_exchanges) if last_exchanges else None]}
 
-Provide a concise summary that captures the essential information."""
+Fournis un résumé concis qui capture les informations essentielles."""
         
         try:
-            # Generate the summary
             summary = self.llm_service.generate_text(prompt, temperature=0.3)
             
-            # Combine summary with recent exchanges
             if last_exchanges:
-                return f"Summary of previous conversation:\n{summary}\n\nRecent exchanges:\n{last_exchanges}"
+                return f"Résumé de la conversation précédente:\n{summary}\n\nÉchanges récents:\n{last_exchanges}"
             else:
-                return f"Summary of previous conversation:\n{summary}"
+                return f"Résumé de la conversation précédente:\n{summary}"
         except Exception as e:
-            print(f"Error summarizing conversation: {e}")
-            # If summarization fails, truncate the history instead
-            return f"[Earlier conversation omitted for brevity]\n\n{conversation_history[-max_length:]}"
+            print(f"Erreur lors du résumé de la conversation: {e}")
+            return f"[Conversation antérieure omise par souci de concision]\n\n{conversation_history[-max_length:]}"
     
     def answer_question_with_context(self, conversation_id, question, messages=None, temperature=0.7):
-        """Generate an answer to a database-related question with conversation context."""
+        """Génère une réponse à une question sur les bases de données avec contexte de conversation."""
         try:
-            # Create new conversation ID if not provided
             if not conversation_id:
                 conversation_id = str(uuid.uuid4())
             
-            # Format conversation history
             conversation_history = self.format_conversation_history(messages)
             
-            # Summarize the conversation history if it's too long
-            if len(conversation_history) > 2000:  # Adjust threshold as needed
+            if len(conversation_history) > 2000:  # Ajustez le seuil si nécessaire
                 conversation_history = self.summarize_conversation(conversation_history)
             
-            # Retrieve relevant documents
             docs = []
             if self.vector_db.db:
-                docs = self.vector_db.db.similarity_search(question, k=5)  # Reduced from 10 to 5 for efficiency
+                docs = self.vector_db.db.similarity_search(question, k=5) 
             
-            # Format retrieved documents
             context = "\n\n".join([doc.page_content for doc in docs]) if docs else ""
             
-            # Create appropriate prompt based on available context
             if context:
-                prompt = f"""You are an expert in SQL Databases. Use the following retrieved documents and conversation history to answer the question.
+                prompt = f"""Tu es un expert en bases de données SQL. Utilise les documents récupérés suivants et l'historique de conversation pour répondre à la question.
 
-Retrieved Documents:
+Documents Récupérés:
 {context}
 
-Conversation History:
+Historique de Conversation:
 {conversation_history}
 
 Question: {question}
 
-Provide a clear, accurate, and helpful answer."""
+Fournis une réponse claire, précise et utile en français."""
             else:
-                prompt = f"""You are an expert in databases and SQL. Answer the following question about databases, SQL, or data management, taking into account the conversation history.
+                prompt = f"""Tu es un expert en bases de données et SQL. Réponds à la question suivante sur les bases de données, SQL ou la gestion de données, en tenant compte de l'historique de conversation.
 
-Conversation History:
+Historique de Conversation:
 {conversation_history}
 
 Question: {question}
 
-Provide a clear, accurate, and helpful answer."""
+Fournis une réponse claire, précise et utile en français."""
             
-            # Generate response using the LLM
+            # Génère une réponse en utilisant le LLM
             answer = self.llm_service.generate_text(prompt, temperature)
             
             return answer
             
         except Exception as e:
             import traceback
-            print(f"Error in DB knowledge service with context: {e}")
-            print(traceback.format_exc())  # Print the full traceback for debugging
-            return f"Error generating an answer: {str(e)}"
+            print(f"Erreur dans le service de connaissances DB avec contexte: {e}")
+            print(traceback.format_exc())  # Affiche la trace complète pour le débogage
+            return f"Erreur lors de la génération d'une réponse: {str(e)}"

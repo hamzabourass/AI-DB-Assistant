@@ -134,7 +134,7 @@ def answer_db_question(question, conversation_id=None, messages=None):
         response = requests.post(
             f"{API_URL}/api/knowledge",
             json=payload,
-            timeout=30  # Longer timeout for knowledge answers
+            timeout=60 # Longer timeout for knowledge answers
         )
         
         if response.status_code == 200:
@@ -375,26 +375,44 @@ def search_vector_db(query, k=5):
         }
 
 def upload_knowledge_document(file):
-    """Upload a knowledge document to the vector database."""
+    """Télécharger un document de connaissance vers la base de données vectorielle."""
     try:
-        # Create a file object from the uploaded file
-        files = {"file": (file.name, file, "text/plain")}
+        # Déterminer le type MIME à partir du type de fichier
+        mime_type = "text/plain"  # Par défaut
+        
+        if file.name.endswith('.pdf'):
+            mime_type = "application/pdf"
+        elif file.name.endswith('.docx'):
+            mime_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        elif file.name.endswith('.csv'):
+            mime_type = "text/csv"
+        elif file.name.endswith('.md'):
+            mime_type = "text/markdown"
+        elif file.name.endswith('.html'):
+            mime_type = "text/html"
+        elif file.name.endswith('.xml'):
+            mime_type = "application/xml"
+        elif file.name.endswith('.json'):
+            mime_type = "application/json"
+        
+        # Créer un objet fichier à partir du fichier téléchargé
+        files = {"file": (file.name, file, mime_type)}
         
         response = requests.post(
             f"{API_URL}/api/vector-db/upload",
             files=files,
-            timeout=30  # Longer timeout for uploads
+            timeout=60  # Timeout plus long pour les téléchargements
         )
         
         if response.status_code == 200:
             return response.json()
         else:
             return {
-                "error": f"Error: {response.status_code}",
-                "message": response.text if response.text else "Unknown error"
+                "error": f"Erreur: {response.status_code}",
+                "message": response.text if response.text else "Erreur inconnue"
             }
     except Exception as e:
         return {
-            "error": "Connection error",
+            "error": "Erreur de connexion",
             "message": str(e)
         }

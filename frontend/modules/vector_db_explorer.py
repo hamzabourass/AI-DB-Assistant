@@ -12,98 +12,137 @@ from utils.api import (
 )
 
 def render_vector_db_explorer_page():
-    """Render the Vector Database Explorer page."""
-    st.title("Vector Database Explorer")
+    """Affiche la page d'explorateur de base de données vectorielle."""
+    st.title("Explorateur de Base de Données Vectorielle")
     
-    # Tabs for different views
-    tab1, tab2, tab3 = st.tabs(["Overview", "Document Explorer", "Search"])
+    # Onglets pour différentes vues
+    tab1, tab2, tab3 = st.tabs(["Aperçu", "Explorateur de Documents", "Recherche"])
     
-    # Overview Tab
+    # Onglet Aperçu
     with tab1:
-        st.header("Vector Database Overview")
+        st.header("Aperçu de la Base de Données Vectorielle")
         
-        # Refresh button
-        if st.button("Refresh Statistics"):
+        # Bouton d'actualisation
+        if st.button("Actualiser les statistiques"):
             st.cache_data.clear()
         
         stats = get_vector_db_stats_cached()
         
         if "error" in stats:
-            st.error(f"Error fetching statistics: {stats['error']}")
+            st.error(f"Erreur lors de la récupération des statistiques : {stats['error']}")
         else:
-            # Display basic statistics
+            # Affichage des statistiques de base
             col1, col2 = st.columns(2)
             
             with col1:
-                st.metric("Total Documents", stats.get("document_count", 0))
-                st.metric("Embedding Dimensions", stats.get("embedding_dimensions", 0))
+                st.metric("Total des Documents", stats.get("document_count", 0))
+                st.metric("Dimensions des Embeddings", stats.get("embedding_dimensions", 0))
             
             with col2:
-                st.metric("Avg. Document Length", f"{int(stats.get('average_document_length', 0))} chars")
-                st.metric("Number of Sources", len(stats.get("sources", {})))
+                st.metric("Longueur Moyenne des Documents", f"{int(stats.get('average_document_length', 0))} caractères")
+                st.metric("Nombre de Sources", len(stats.get("sources", {})))
             
-            # Show sources distribution
+            # Affichage de la distribution des sources
             if stats.get("sources"):
-                st.subheader("Document Sources")
+                st.subheader("Sources des Documents")
                 
-                # Convert to dataframe for display
+                # Conversion en dataframe pour l'affichage
                 sources_df = pd.DataFrame({
                     "Source": list(stats["sources"].keys()),
-                    "Count": list(stats["sources"].values())
+                    "Nombre": list(stats["sources"].values())
                 })
                 
-                sources_df = sources_df.sort_values("Count", ascending=False)
+                sources_df = sources_df.sort_values("Nombre", ascending=False)
                 
-                # Create pie chart
+                # Création d'un graphique en camembert
                 fig, ax = plt.subplots(figsize=(10, 6))
-                ax.pie(sources_df["Count"], labels=sources_df["Source"], autopct='%1.1f%%')
+                ax.pie(sources_df["Nombre"], labels=sources_df["Source"], autopct='%1.1f%%')
                 ax.axis('equal')
                 st.pyplot(fig)
                 
-                # Show as table
+                # Affichage sous forme de tableau
                 st.dataframe(sources_df)
         
-        # Upload new documents
-        st.subheader("Upload New Document")
+        # Téléchargement de nouveaux documents avec support multi-format
+        st.subheader("Télécharger un Nouveau Document")
         
-        uploaded_file = st.file_uploader("Choose a text file", type=["txt"])
+        # Liste des formats de fichiers acceptés
+        accepted_formats = ["txt", "pdf", "docx", "md", "csv", "json", "xml", "html"]
+        
+        # Information sur les formats supportés
+        with st.expander("Formats de fichiers supportés"):
+            st.markdown("""
+            L'indexation vectorielle peut traiter les formats suivants :
+            - **Texte brut** (.txt)
+            - **Documents structurés** (.pdf, .docx)
+            - **Données structurées** (.csv, .json, .xml)
+            - **Contenu web** (.html)
+            - **Documentation** (.md)
+            
+            Note : Les fichiers volumineux peuvent prendre plus de temps à indexer.
+            """)
+        
+        # Widget de téléchargement avec multiple formats
+        uploaded_file = st.file_uploader(
+            "Choisissez un fichier à indexer", 
+            type=accepted_formats,
+            help="Téléchargez un fichier pour l'ajouter à la base de connaissances vectorielle"
+        )
         
         if uploaded_file is not None:
-            if st.button("Upload and Index Document"):
-                with st.spinner("Uploading and indexing document..."):
+            # Affichage des informations sur le fichier
+            file_details = {
+                "Nom du fichier": uploaded_file.name,
+                "Type de fichier": uploaded_file.type,
+                "Taille": f"{uploaded_file.size / 1024:.2f} KB"
+            }
+            
+            st.write("Détails du fichier :")
+            for k, v in file_details.items():
+                st.write(f"- **{k}:** {v}")
+            
+            # Option pour prévisualiser le contenu (pour les fichiers texte)
+            if uploaded_file.type.startswith("text/") or uploaded_file.name.endswith(".txt"):
+                if st.checkbox("Prévisualiser le contenu"):
+                    # Lecture et affichage du contenu
+                    content = uploaded_file.getvalue().decode("utf-8")
+                    st.text_area("Aperçu du contenu", value=content[:1000] + ("..." if len(content) > 1000 else ""), height=200)
+            
+            if st.button("Télécharger et Indexer le Document"):
+                with st.spinner(f"Téléchargement et indexation de {uploaded_file.name}..."):
                     result = upload_knowledge_document(uploaded_file)
                 
                 if "error" in result:
-                    st.error(f"Error uploading document: {result['error']}")
+                    st.error(f"Erreur lors du téléchargement du document : {result['error']}")
                 else:
-                    st.success(result.get("message", "Document uploaded successfully"))
-                    # Clear the cache so new document appears
+                    st.success(result.get("message", "Document téléchargé avec succès"))
+                    # Effacer le cache pour que le nouveau document apparaisse
                     st.cache_data.clear()
                     time.sleep(1)
                     st.rerun()
     
-    # Document Explorer Tab
+    # Onglet Explorateur de Documents
     with tab2:
-        st.header("Document Explorer")
+        st.header("Explorateur de Documents")
         
-        # Get documents with pagination
+        # Obtention des documents avec pagination
         page_size = 10
         current_page = st.session_state.get("current_page", 1)
         
-        # Calculate offset
+        # Calcul du décalage
         offset = (current_page - 1) * page_size
         
-        # Fetch documents
+        # Récupération des documents
         docs_result = get_vector_db_documents_cached(limit=page_size, offset=offset)
         
         if "error" in docs_result:
-            st.error(f"Error fetching documents: {docs_result['error']}")
+            st.error(f"Erreur lors de la récupération des documents : {docs_result['error']}")
         else:
             documents = docs_result.get("documents", [])
             total_docs = docs_result.get("total", 0)
             total_pages = (total_docs + page_size - 1) // page_size if total_docs > 0 else 1
             
-            # Pagination controls
+            # Contrôles de pagination
             col1, col2, col3, col4 = st.columns([1, 3, 3, 1])
             
             with col1:
@@ -113,12 +152,12 @@ def render_vector_db_explorer_page():
                         st.rerun()
             
             with col2:
-                st.write(f"Page {current_page} of {total_pages}")
+                st.write(f"Page {current_page} sur {total_pages}")
             
             with col3:
-                # Page number input
+                # Saisie du numéro de page
                 page_input = st.number_input(
-                    "Go to page", 
+                    "Aller à la page", 
                     min_value=1, 
                     max_value=max(1, total_pages),
                     value=current_page,
@@ -135,70 +174,70 @@ def render_vector_db_explorer_page():
                         st.session_state.current_page = current_page + 1
                         st.rerun()
             
-            # Display documents
+            # Affichage des documents
             if documents:
                 for doc in documents:
-                    with st.expander(f"Document: {doc.get('id', 'Unknown')}"):
-                        st.markdown("#### Metadata")
+                    with st.expander(f"Document : {doc.get('id', 'Inconnu')}"):
+                        st.markdown("#### Métadonnées")
                         metadata = doc.get("metadata", {})
                         
                         for key, value in metadata.items():
                             st.write(f"**{key}:** {value}")
                         
-                        st.markdown("#### Content")
+                        st.markdown("#### Contenu")
                         st.text_area(
-                            "Document content",
-                            value=doc.get("content", "No content available"),
+                            "Contenu du document",
+                            value=doc.get("content", "Aucun contenu disponible"),
                             height=200,
                             label_visibility="collapsed"
                         )
             else:
-                st.info("No documents found in the vector database.")
+                st.info("Aucun document trouvé dans la base de données vectorielle.")
     
-    # Search Tab
+    # Onglet Recherche
     with tab3:
-        st.header("Search Vector Database")
+        st.header("Rechercher dans la Base de Données Vectorielle")
         
-        query = st.text_input("Enter search query:")
-        k = st.slider("Number of results:", min_value=1, max_value=20, value=5)
+        query = st.text_input("Entrez votre requête de recherche :")
+        k = st.slider("Nombre de résultats :", min_value=1, max_value=20, value=5)
         
-        if st.button("Search") and query:
-            with st.spinner("Searching..."):
+        if st.button("Rechercher") and query:
+            with st.spinner("Recherche en cours..."):
                 results = search_vector_db(query, k)
             
             if "error" in results:
-                st.error(f"Error searching: {results['error']}")
+                st.error(f"Erreur lors de la recherche : {results['error']}")
             else:
                 search_results = results.get("results", [])
                 
                 if not search_results:
-                    st.info("No matching documents found.")
+                    st.info("Aucun document correspondant trouvé.")
                 else:
                     for i, result in enumerate(search_results):
                         similarity = result.get("similarity_score", 0)
-                        similarity_percentage = (1 - similarity) * 100  # Convert distance to similarity percentage
+                        similarity_percentage = (1 - similarity) * 100  # Conversion de la distance en pourcentage de similarité
                         
-                        with st.expander(f"Result {i+1} - Similarity: {similarity_percentage:.2f}%"):
-                            st.markdown("#### Metadata")
+                        with st.expander(f"Résultat {i+1} - Similarité : {similarity_percentage:.2f}%"):
+                            st.markdown("#### Métadonnées")
                             metadata = result.get("metadata", {})
                             
                             for key, value in metadata.items():
                                 st.write(f"**{key}:** {value}")
                             
-                            st.markdown("#### Content")
+                            st.markdown("#### Contenu")
                             st.text_area(
-                                f"Document content {i}",
-                                value=result.get("content", "No content available"),
+                                f"Contenu du document {i}",
+                                value=result.get("content", "Aucun contenu disponible"),
                                 height=200,
                                 label_visibility="collapsed"
                             )
 
 @st.cache_data(ttl=300)
 def get_vector_db_stats_cached():
-    """Cached version of get_vector_db_stats."""
+    """Version mise en cache de get_vector_db_stats."""
     return get_vector_db_stats()
 
 @st.cache_data(ttl=300)
 def get_vector_db_documents_cached(limit=10, offset=0):
-    """Cached version of get_vector_db_documents."""
+    """Version mise en cache de get_vector_db_documents."""
     return get_vector_db_documents(limit, offset)

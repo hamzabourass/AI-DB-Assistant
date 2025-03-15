@@ -2,11 +2,11 @@ import streamlit as st
 from utils.api import check_api_status
 
 def render_home_page():
-    """Render the home page of the application."""
-    # Main title
-    st.title("AI Database Assistant")
+    """Affiche la page d'accueil de l'application."""
+    # Titre principal
+    st.title("Assistant Base de Données IA")
     
-    # Introduction card
+    # Carte d'introduction
     st.markdown("""
     <div style="
         padding: 20px; 
@@ -15,19 +15,19 @@ def render_home_page():
         box-shadow: 0 2px 6px rgba(0,0,0,0.1);
         margin-bottom: 20px;
     ">
-        <h3>Welcome to the AI Database Assistant 👋</h3>
-        <p>This tool helps you work with databases more efficiently by leveraging artificial intelligence.
-        Whether you need to write SQL queries, learn about database concepts, or design database schemas,
-        we've got you covered.</p>
+        <h3>Bienvenue sur l'Assistant Base de Données IA 👋</h3>
+        <p>Cet outil vous aide à travailler plus efficacement avec les bases de données en utilisant l'intelligence artificielle.
+        Que vous ayez besoin d'écrire des requêtes SQL, d'apprendre des concepts de base de données ou de concevoir des schémas,
+        nous sommes là pour vous aider.</p>
     </div>
     """, unsafe_allow_html=True)
     
-    # Features section
+    # Section Fonctionnalités
     st.markdown("""
-    <h2 style="margin-top: 30px; margin-bottom: 20px;">Features</h2>
+    <h2 style="margin-top: 30px; margin-bottom: 20px;">Fonctionnalités</h2>
     """, unsafe_allow_html=True)
     
-    # Features in a card layout
+    # Fonctionnalités dans une mise en page de cartes
     col1, col2, col3 = st.columns(3)
     
     with col1:
@@ -39,9 +39,9 @@ def render_home_page():
             box-shadow: 0 2px 6px rgba(0,0,0,0.1);
             height: 100%;
         ">
-            <div style="font-size: 2rem; margin-bottom: 10px;">📝</div>
-            <h3>SQL Generator</h3>
-            <p>Convert natural language to SQL queries for any database dialect.</p>
+            <div style="font-size: 2rem; margin-bottom: 10px;">💬</div>
+            <h3>Assistant BDD</h3>
+            <p>Posez des questions sur les bases de données et SQL.</p>
             <div style="
                 display: inline-block;
                 padding: 4px 8px;
@@ -51,7 +51,7 @@ def render_home_page():
                 font-size: 0.8rem;
                 font-weight: 500;
             ">
-                Available
+                Disponible
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -66,18 +66,18 @@ def render_home_page():
             height: 100%;
         ">
             <div style="font-size: 2rem; margin-bottom: 10px;">🔍</div>
-            <h3>DB Knowledge</h3>
-            <p>Get answers to database questions and learn best practices.</p>
+            <h3>Explorateur BDD Vectorielle</h3>
+            <p>Explorez et recherchez dans la base de connaissances vectorielle.</p>
             <div style="
                 display: inline-block;
                 padding: 4px 8px;
-                background-color: #fef7e0;
-                color: #b06000;
+                background-color: #e6f4ea;
+                color: #137333;
                 border-radius: 4px;
                 font-size: 0.8rem;
                 font-weight: 500;
             ">
-                Coming Soon
+                Disponible
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -91,26 +91,26 @@ def render_home_page():
             box-shadow: 0 2px 6px rgba(0,0,0,0.1);
             height: 100%;
         ">
-            <div style="font-size: 2rem; margin-bottom: 10px;">🏗️</div>
-            <h3>Schema Designer</h3>
-            <p>Generate database schemas from natural language descriptions.</p>
+            <div style="font-size: 2rem; margin-bottom: 10px;">🔧</div>
+            <h3>Explorateur SQLite</h3>
+            <p>Explorez et interrogez directement la base de données SQLite.</p>
             <div style="
                 display: inline-block;
                 padding: 4px 8px;
-                background-color: #fef7e0;
-                color: #b06000;
+                background-color: #e6f4ea;
+                color: #137333;
                 border-radius: 4px;
                 font-size: 0.8rem;
                 font-weight: 500;
             ">
-                Coming Soon
+                Disponible
             </div>
         </div>
         """, unsafe_allow_html=True)
     
-    # System status card
+    # Carte d'état du système
     st.markdown("""
-    <h2 style="margin-top: 30px; margin-bottom: 20px;">System Status</h2>
+    <h2 style="margin-top: 30px; margin-bottom: 20px;">État du Système</h2>
     """, unsafe_allow_html=True)
     
     api_status = check_api_status()
@@ -118,11 +118,11 @@ def render_home_page():
     if api_status["connected"]:
         status_color = "#e6f4ea"
         status_text_color = "#137333"
-        status_message = "✅ Backend API is connected and running properly"
+        status_message = "✅ L'API Backend est connectée et fonctionne correctement"
     else:
         status_color = "#fce8e6"
         status_text_color = "#c5221f"
-        status_message = "❌ Cannot connect to backend API"
+        status_message = "❌ Impossible de se connecter à l'API Backend"
     
     st.markdown(f"""
     <div style="
@@ -133,22 +133,22 @@ def render_home_page():
         margin-bottom: 20px;
         color: {status_text_color};
     ">
-        <h3 style="color: {status_text_color};">System Status</h3>
+        <h3 style="color: {status_text_color};">État du Système</h3>
         <p style="font-weight: 500;">{status_message}</p>
         
         {"" if api_status["connected"] else """
-        <p><strong>Please check:</strong></p>
+        <p><strong>Veuillez vérifier :</strong></p>
         <ul>
-            <li>API server is running at http://localhost:8000</li>
-            <li>Network connections and firewall settings</li>
+            <li>Le serveur API est en cours d'exécution sur http://localhost:8000</li>
+            <li>Les connexions réseau et les paramètres de pare-feu</li>
         </ul>
         """}
     </div>
     """, unsafe_allow_html=True)
     
-    # Quick start card
+    # Carte de démarrage rapide
     st.markdown("""
-    <h2 style="margin-top: 30px; margin-bottom: 20px;">Quick Start</h2>
+    <h2 style="margin-top: 30px; margin-bottom: 20px;">Démarrage Rapide</h2>
     <div style="
         padding: 20px; 
         border-radius: 8px; 
@@ -156,27 +156,26 @@ def render_home_page():
         box-shadow: 0 2px 6px rgba(0,0,0,0.1);
         margin-bottom: 20px;
     ">
-        <h3>How to use the AI Database Assistant</h3>
+        <h3>Comment utiliser l'Assistant Base de Données IA</h3>
         <ol>
-            <li>Select a feature from the sidebar navigation</li>
-            <li>Follow the instructions for each tool</li>
-            <li>For the SQL Generator, describe what data you want to query in natural language</li>
-            <li>Review and use the generated output in your database system</li>
+            <li>Sélectionnez une fonctionnalité dans la navigation de la barre latérale</li>
+            <li>Suivez les instructions pour chaque outil</li>
+            <li>Pour l'Assistant BDD, posez des questions sur les bases de données ou SQL</li>
+            <li>Consultez et utilisez les réponses générées dans votre système de base de données</li>
         </ol>
     </div>
     """, unsafe_allow_html=True)
     
-    with st.expander("How it works"):
+    with st.expander("Comment ça marche"):
         with st.container():
             st.markdown("""
-                The AI Database Assistant uses natural language processing to understand your requests and generate 
-                appropriate database-related outputs:
+                L'Assistant Base de Données IA utilise le traitement du langage naturel pour comprendre vos demandes et générer 
+                des réponses adaptées aux bases de données :
 
-                - **SQL Generator**: Translates your description into valid SQL code
-                - **DB Knowledge**: Provides explanations about database concepts and best practices
-                - **Schema Designer**: Creates database schemas based on your requirements
+                - **Assistant BDD** : Répond à vos questions sur les concepts de base de données et les bonnes pratiques
+                - **Explorateur BDD Vectorielle** : Explore les documents stockés dans la base de données vectorielle
 
-                All of this is powered by advanced language models that understand both natural language and database technologies.
+                Tout cela est alimenté par des modèles de langage avancés qui comprennent à la fois le langage naturel et les technologies de base de données.
             """)
             st.markdown("""
                 <style>

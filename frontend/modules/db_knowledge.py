@@ -4,25 +4,25 @@ import time
 import uuid
 
 def render_db_knowledge_page():
-    """Render the Database Knowledge page with Streamlit's built-in chat components."""
+    """Affiche la page d'assistant base de données avec les composants de chat Streamlit."""
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
         
     if "conversation_id" not in st.session_state:
         st.session_state.conversation_id = str(uuid.uuid4())
 
-    st.title("Database Assistant")
+    st.title("Assistant Base de Données")
 
-    # Display debug info in sidebar if checked
-    if st.sidebar.checkbox("Show Debug Info", False):
-        st.sidebar.write(f"Conversation ID: {st.session_state.conversation_id}")
-        st.sidebar.write(f"Message Count: {len(st.session_state.chat_history)}")
-        if st.sidebar.button("🗑️ Clear Conversation"):
+    # Affichage des informations de débogage dans la barre latérale si coché
+    if st.sidebar.checkbox("Afficher les infos de débogage", False):
+        st.sidebar.write(f"ID de conversation : {st.session_state.conversation_id}")
+        st.sidebar.write(f"Nombre de messages : {len(st.session_state.chat_history)}")
+        if st.sidebar.button("🗑️ Effacer la conversation"):
             st.session_state.chat_history = []
             st.session_state.conversation_id = str(uuid.uuid4())
             st.rerun()
 
-    # Display chat messages from history
+    # Affichage des messages du chat à partir de l'historique
     for message in st.session_state.chat_history:
         if message["role"] == "user":
             with st.chat_message("user"):
@@ -31,46 +31,44 @@ def render_db_knowledge_page():
             with st.chat_message("assistant"):
                 st.write(message["content"])
 
-    # Display example questions if no chat history
+    # Affichage des questions d'exemple si l'historique est vide
     if not st.session_state.chat_history:
-        # st.info("### Database Knowledge Assistant")
-        st.write("Ask questions about database concepts, SQL syntax, and optimization techniques.")
-        # st.write("The assistant maintains context between questions, so you can ask follow-up questions.")
+        st.write("Posez des questions sur les concepts de base de données, la syntaxe SQL et les techniques d'optimisation.")
         
         col1, col2, col3 = st.columns(3)
         with col1:
-            if st.button("What is database normalization?", use_container_width=True):
-                process_question("What is database normalization?")
+            if st.button("Qu'est-ce que la normalisation de base de données ?", use_container_width=True):
+                process_question("Qu'est-ce que la normalisation de base de données ?")
                 st.rerun()
         with col2:
-            if st.button("How to use indexes?", use_container_width=True):
-                process_question("How to use indexes?")
+            if st.button("Comment utiliser les index ?", use_container_width=True):
+                process_question("Comment utiliser les index ?")
                 st.rerun()
         with col3:
-            if st.button("Explain JOIN types", use_container_width=True):
-                process_question("Explain JOIN types")
+            if st.button("Expliquer les types de JOIN", use_container_width=True):
+                process_question("Expliquer les types de JOIN")
                 st.rerun()
 
-    # Chat input
-    if prompt := st.chat_input("Ask a question about databases:"):
+    # Saisie du chat
+    if prompt := st.chat_input("Posez une question sur les bases de données :"):
         process_question(prompt)
         st.rerun()
 
 def process_question(question):
-    """Process a user question and add to chat history."""
-    # Add user message to chat history
+    """Traite une question utilisateur et l'ajoute à l'historique du chat."""
+    # Ajout du message utilisateur à l'historique
     st.session_state.chat_history.append({"role": "user", "content": question})
     
-    # Display user message immediately
+    # Affichage immédiat du message utilisateur
     with st.chat_message("user"):
         st.write(question)
     
-    # Display assistant response with thinking indicator
+    # Affichage de la réponse de l'assistant avec indicateur de réflexion
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
-        message_placeholder.info("Thinking...")
+        message_placeholder.info("En train de réfléchir...")
         
-        # Get response from backend, passing the current chat history
+        # Obtention de la réponse du backend, en passant l'historique du chat actuel
         result = answer_db_question(
             question, 
             st.session_state.conversation_id,
@@ -78,32 +76,32 @@ def process_question(question):
         )
         
         if result["success"]:
-            # Update chat history with bot response
+            # Mise à jour de l'historique avec la réponse du bot
             response = result["answer"]
             st.session_state.chat_history.append({
                 "role": "bot", 
                 "content": response
             })
             
-            # Display final response
+            # Affichage de la réponse finale
             message_placeholder.write(response)
             
-            # Update conversation ID if provided
+            # Mise à jour de l'ID de conversation si fourni
             if "conversation_id" in result and result["conversation_id"]:
                 st.session_state.conversation_id = result["conversation_id"]
                 
-            # Save chat history
+            # Sauvegarde de l'historique du chat
             try:
                 save_chat(
                     st.session_state.conversation_id,
                     st.session_state.chat_history,
-                    st.session_state.chat_history[0]["content"] if st.session_state.chat_history else "New Conversation"
+                    st.session_state.chat_history[0]["content"] if st.session_state.chat_history else "Nouvelle Conversation"
                 )
             except Exception as e:
-                print(f"Error saving chat: {e}")
+                print(f"Erreur lors de la sauvegarde du chat: {e}")
         else:
-            # Handle error
-            error_message = f"Sorry, I couldn't process your question. {result.get('error', '')} {result.get('message', '')}"
+            # Gestion des erreurs
+            error_message = f"Désolé, je n'ai pas pu traiter votre question. {result.get('error', '')} {result.get('message', '')}"
             st.session_state.chat_history.append({
                 "role": "bot", 
                 "content": error_message

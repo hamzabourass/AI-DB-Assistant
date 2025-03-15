@@ -11,27 +11,22 @@ class VectorDBInspector:
         """Initialize the Vector DB Inspector service."""
         self.persist_directory = persist_directory
         
-        # Path to FAISS index
         self.index_path = os.path.join(persist_directory, "faiss_index")
         
-        # Print paths for debugging
         print(f"Looking for vector database in: {os.path.abspath(self.index_path)}")
         print(f"Files in directory: {os.listdir(self.index_path) if os.path.exists(self.index_path) else 'Directory not found'}")
         
-        # Check if vector database exists
         if not os.path.exists(os.path.join(self.index_path, "index.faiss")):
             print(f"index.faiss not found at {os.path.join(self.index_path, 'index.faiss')}")
             raise ValueError(f"Vector database file index.faiss not found in {self.index_path}")
         
-        # Initialize the embedding model (local model, no API needed)
         self.embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
         
-        # Load the database
         try:
             self.db = FAISS.load_local(
                 self.index_path, 
                 self.embeddings,
-                allow_dangerous_deserialization=True  # Add this parameter
+                allow_dangerous_deserialization=True
             )
             print(f"Successfully loaded vector database with {len(self.db.docstore._dict)} documents")
         except Exception as e:
@@ -47,22 +42,18 @@ class VectorDBInspector:
     def get_all_documents(self, limit=100, offset=0):
         """Get all documents in the vector database with pagination."""
         try:
-            # Get all document IDs
             all_ids = list(self.db.docstore._dict.keys())
             
-            # Apply pagination
             paginated_ids = all_ids[offset:min(offset+limit, len(all_ids))]
             
             if not paginated_ids:
                 return []
             
-            # Get documents by IDs
             documents = []
             for doc_id in paginated_ids:
                 try:
                     doc = self.db.docstore._dict.get(doc_id)
                     if doc:
-                        # Make sure metadata is JSON serializable
                         metadata = {}
                         for k, v in doc.metadata.items():
                             if isinstance(v, (str, int, float, bool, list, dict, type(None))):

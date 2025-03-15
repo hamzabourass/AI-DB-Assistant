@@ -1,4 +1,3 @@
-import uuid
 from fastapi import FastAPI, HTTPException, Depends, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -263,7 +262,7 @@ def get_vector_db_stats():
                 status_code=404,
                 content={
                     "error": f"Vector database not found: {str(e)}",
-                    "suggestion": "Run 'python scripts/initialize_faiss.py' to initialize the vector database with sample data"
+                    "suggestion": "Run 'python scripts/initialize_db.py' to initialize the vector database with sample data"
                 }
             )
     except Exception as e:
@@ -365,37 +364,50 @@ def search_vector_db(query: str, k: int = 5):
             content={"error": f"Error searching vector DB: {str(e)}"}
         )
 
+# Cet extrait montre uniquement la fonction d'upload modifiée, à intégrer dans votre app.py
+
 @app.post("/api/vector-db/upload")
 async def upload_knowledge_document(file: UploadFile = File(...)):
-    """Upload a knowledge document to the vector database."""
+    """Télécharger un document de connaissance vers la base de données vectorielle."""
     if not service_initialized:
-        raise HTTPException(status_code=503, detail="Services not initialized. Check API key.")
+        raise HTTPException(status_code=503, detail="Services non initialisés. Vérifiez la clé API.")
     
     try:
-        # Create knowledge directory if it doesn't exist
+        # Liste des extensions autorisées
+        allowed_extensions = ['.txt', '.pdf', '.docx', '.md', '.csv', '.json', '.xml', '.html']
+        
+        # Vérifier l'extension du fichier
+        file_extension = os.path.splitext(file.filename)[1].lower()
+        if file_extension not in allowed_extensions:
+            return JSONResponse(
+                status_code=400,
+                content={"error": f"Type de fichier non pris en charge. Extensions autorisées : {', '.join(allowed_extensions)}"}
+            )
+        
+        # Créer le répertoire knowledge s'il n'existe pas
         knowledge_dir = "./knowledge"
         os.makedirs(knowledge_dir, exist_ok=True)
         
-        # Save uploaded file
+        # Enregistrer le fichier téléchargé
         file_path = os.path.join(knowledge_dir, file.filename)
         
         with open(file_path, "wb") as f:
             shutil.copyfileobj(file.file, f)
         
-        # Re-index the vector database
+        # Réindexer la base de données vectorielle
         success = vector_db_service.index_documents()
         
         if success:
-            return {"message": f"Document {file.filename} uploaded and indexed successfully"}
+            return {"message": f"Document {file.filename} téléchargé et indexé avec succès"}
         else:
-            # If indexing fails, delete the uploaded file
+            # Si l'indexation échoue, supprimer le fichier téléchargé
             os.remove(file_path)
             return JSONResponse(
                 status_code=500,
-                content={"error": "Failed to index document"}
+                content={"error": "Échec de l'indexation du document"}
             )
     except Exception as e:
         return JSONResponse(
             status_code=500,
-            content={"error": f"Error uploading document: {str(e)}"}
+            content={"error": f"Erreur lors du téléchargement du document : {str(e)}"}
         )

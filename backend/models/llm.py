@@ -5,28 +5,30 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class LLMService:
-    """Service for interacting with Language Models."""
+    """Service pour interagir avec les modèles de langage."""
     
     def __init__(self):
-        """Initialize the LLM service."""
+        """Initialise le service LLM."""
         
         api_key = os.getenv("GROQ_API_KEY")
         if not api_key:
-            raise ValueError("GROQ_API_KEY environment variable is not set in .env file")
+            raise ValueError("La variable d'environnement GROQ_API_KEY n'est pas définie dans le fichier .env")
         
         self.llm = ChatOpenAI(
             base_url="https://api.groq.com/openai/v1",
-            api_key="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",
-            model_name="llama3-70b-8192",
-            temperature=0.7
+            api_key=api_key,
+            model_name="mixtral-8x7b-32768",  # Ou "mixtral-8x7b-32768" pour un bon équilibre français/SQL
+            temperature=0.2,
+            top_p=0.9,
+            frequency_penalty=0.1,
+            presence_penalty=0.0,
+            max_tokens=4096
         )
-    
     def generate_text(self, prompt, temperature=0.7):
-        """Generate text based on the provided prompt."""
+        """Génère du texte basé sur le prompt fourni."""
         try:
-            # For backwards compatibility
             response = self.llm.invoke(prompt)
             return response.content
         except Exception as e:
-            print(f"Error generating text: {e}")
-            return f"Error occurred: {str(e)}"
+            print(f"Erreur lors de la génération de texte : {e}")
+            return f"Une erreur s'est produite : {str(e)}"

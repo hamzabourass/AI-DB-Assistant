@@ -3,6 +3,7 @@ from models.llm import LLMService
 from services.vector_db import VectorDBService
 import uuid
 
+
 class DBKnowledgeService:
     """Service pour répondre aux questions sur les bases de données en utilisant un LLM avec RAG."""
     

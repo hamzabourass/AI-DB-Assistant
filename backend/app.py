@@ -374,7 +374,7 @@ async def upload_knowledge_document(file: UploadFile = File(...)):
     
     try:
         # Liste des extensions autorisées
-        allowed_extensions = ['.txt', '.pdf', '.docx', '.md', '.csv', '.json', '.xml', '.html']
+        allowed_extensions = ['.txt', '.pdf', '.docx', '.doc', '.md', '.csv', '.json', '.xml', '.html']
         
         # Vérifier l'extension du fichier
         file_extension = os.path.splitext(file.filename)[1].lower()
@@ -394,8 +394,14 @@ async def upload_knowledge_document(file: UploadFile = File(...)):
         with open(file_path, "wb") as f:
             shutil.copyfileobj(file.file, f)
         
+        print(f"Fichier sauvegardé: {file_path}")
+        
         # Réindexer la base de données vectorielle
-        success = vector_db_service.index_documents()
+        # Option 1: Réindexation complète (plus fiable mais plus lente)
+        success = vector_db_service.clear_and_reindex()
+        
+        # Option 2: Ajouter uniquement le nouveau document
+        # success = vector_db_service.index_documents()
         
         if success:
             return {"message": f"Document {file.filename} téléchargé et indexé avec succès"}
@@ -407,6 +413,9 @@ async def upload_knowledge_document(file: UploadFile = File(...)):
                 content={"error": "Échec de l'indexation du document"}
             )
     except Exception as e:
+        import traceback
+        print(f"Erreur lors du téléchargement du document : {str(e)}")
+        print(traceback.format_exc())
         return JSONResponse(
             status_code=500,
             content={"error": f"Erreur lors du téléchargement du document : {str(e)}"}

@@ -366,6 +366,7 @@ def search_vector_db(query: str, k: int = 5):
 
 # Cet extrait montre uniquement la fonction d'upload modifiée, à intégrer dans votre app.py
 
+
 @app.post("/api/vector-db/upload")
 async def upload_knowledge_document(file: UploadFile = File(...)):
     """Télécharger un document de connaissance vers la base de données vectorielle."""

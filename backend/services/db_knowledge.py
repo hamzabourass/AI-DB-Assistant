@@ -67,52 +67,83 @@ Fournis un résumé concis qui capture les informations essentielles."""
             print(f"Erreur lors du résumé de la conversation: {e}")
             return f"[Conversation antérieure omise par souci de concision]\n\n{conversation_history[-max_length:]}"
     
+
     def answer_question_with_context(self, conversation_id, question, messages=None, temperature=0.7):
         """Génère une réponse à une question sur les bases de données avec contexte de conversation."""
         try:
+            # Create a debug log file that will definitely capture our output
+            with open("rag_retrieval_debug.log", "a") as debug_file:
+                debug_file.write(f"\n\n========================\n")
+                import datetime
+                debug_file.write(f"TIMESTAMP: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                debug_file.write(f"QUESTION: {question}\n")
+                debug_file.write(f"CONVERSATION ID: {conversation_id}\n")
+                debug_file.write(f"========================\n\n")
+            
             if not conversation_id:
                 conversation_id = str(uuid.uuid4())
             
             conversation_history = self.format_conversation_history(messages)
             
-            if len(conversation_history) > 2000:  # Ajustez le seuil si nécessaire
+            if len(conversation_history) > 2000:
                 conversation_history = self.summarize_conversation(conversation_history)
             
             docs = []
             if self.vector_db.db:
-                docs = self.vector_db.db.similarity_search(question, k=5) 
+                # Get documents from vector DB
+                docs = self.vector_db.db.similarity_search(question, k=5)
+                
+                # Log the retrieved documents to our debug file
+                with open("rag_retrieval_debug.log", "a") as debug_file:
+                    debug_file.write(f"RETRIEVED {len(docs)} DOCUMENTS:\n\n")
+                    
+                    for i, doc in enumerate(docs):
+                        debug_file.write(f"--- DOCUMENT {i+1} ---\n")
+                        debug_file.write(f"SOURCE: {doc.metadata.get('source', 'Unknown')}\n")
+                        debug_file.write(f"CONTENT:\n{doc.page_content}\n\n")
+            else:
+                with open("rag_retrieval_debug.log", "a") as debug_file:
+                    debug_file.write("NO VECTOR DB AVAILABLE\n")
             
             context = "\n\n".join([doc.page_content for doc in docs]) if docs else ""
             
             if context:
                 prompt = f"""Tu es un expert en bases de données SQL. Utilise les documents récupérés suivants et l'historique de conversation pour répondre à la question.
 
-Documents Récupérés:
-{context}
+    Documents Récupérés:
+    {context}
 
-Historique de Conversation:
-{conversation_history}
+    Historique de Conversation:
+    {conversation_history}
 
-Question: {question}
+    Question: {question}
 
-Fournis une réponse claire, précise et utile en français."""
+    Fournis une réponse claire, précise et utile en français."""
             else:
                 prompt = f"""Tu es un expert en bases de données et SQL. Réponds à la question suivante sur les bases de données, SQL ou la gestion de données, en tenant compte de l'historique de conversation.
 
-Historique de Conversation:
-{conversation_history}
+    Historique de Conversation:
+    {conversation_history}
 
-Question: {question}
+    Question: {question}
 
-Fournis une réponse claire, précise et utile en français."""
+    Fournis une réponse claire, précise et utile en français."""
             
             # Génère une réponse en utilisant le LLM
             answer = self.llm_service.generate_text(prompt, temperature)
+            
+            # Log the answer too
+            with open("rag_retrieval_debug.log", "a") as debug_file:
+                debug_file.write(f"ANSWER:\n{answer[:200]}...\n\n")
             
             return answer
             
         except Exception as e:
             import traceback
-            print(f"Erreur dans le service de connaissances DB avec contexte: {e}")
-            print(traceback.format_exc())  # Affiche la trace complète pour le débogage
+            error_msg = f"Erreur dans le service de connaissances DB: {e}\n{traceback.format_exc()}"
+            
+            # Log the error to our debug file
+            with open("rag_retrieval_debug.log", "a") as debug_file:
+                debug_file.write(f"ERROR:\n{error_msg}\n\n")
+                
             return f"Erreur lors de la génération d'une réponse: {str(e)}"

@@ -6,6 +6,7 @@ from modules.vector_db_explorer import render_vector_db_explorer_page
 from modules.sqlite_db_explorer import render_sqlite_db_explorer_page
 from utils.api import check_api_status
 from utils.styles import load_css
+from modules.video_transcription import render_video_transcription_page
 
 # Configuration de la page
 st.set_page_config(
@@ -23,8 +24,8 @@ PAGES = {
     "🏠  Accueil": "Accueil",
     "💬  Assistant Base de Données": "Assistant Base de Données",
     "🔍  Explorateur BDD Vectorielle": "Explorateur de Base Vectorielle",
+    "🎥  Transcription Vidéo": "Transcription Vidéo",  # Add this line
 }
-
 # Configuration de la barre latérale
 def render_sidebar():
     with st.sidebar:
@@ -75,6 +76,8 @@ def main():
         render_db_knowledge_page()
     elif selected_page == "Explorateur de Base Vectorielle":
         render_vector_db_explorer_page()
+    elif selected_page == "Transcription Vidéo":
+       render_video_transcription_page()
 
 
 if __name__ == "__main__":

@@ -63,7 +63,7 @@ def render_sidebar():
         else:
             st.error("❌ API Déconnectée", icon="❌")
         
-        st.caption("Version 0.4")
+        
     
     return st.session_state.active_page
 

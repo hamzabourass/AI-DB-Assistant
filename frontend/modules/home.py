@@ -92,8 +92,8 @@ def render_home_page():
             height: 100%;
         ">
             <div style="font-size: 2rem; margin-bottom: 10px;">🔧</div>
-            <h3>Explorateur SQLite</h3>
-            <p>Explorez et interrogez directement la base de données SQLite.</p>
+            <h3>Maintenance Vectorielle</h3>
+            <p>Maintenire et interrogez directement la base de données vectorielle.</p>
             <div style="
                 display: inline-block;
                 padding: 4px 8px;

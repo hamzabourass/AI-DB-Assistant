@@ -2,20 +2,16 @@ from fastapi import FastAPI, HTTPException, Depends, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from services.sql_generator import SQLGeneratorService
 from services.db_knowledge import DBKnowledgeService
-from services.history_service import HistoryService
 from services.vector_db import VectorDBService
 from services.vector_db_inspector import VectorDBInspector
 from services.vector_db_cleanup import VectorDBCleanupService
 from services.chat_history_service import ChatHistoryService
 
-from models.sql_request import SQLRequest
 from models.knowledge_request import KnowledgeRequest
-from models.history_request import HistoryDeleteRequest
 from models.history import ChatHistory, get_db
 from sqlalchemy.orm import Session
-from models.chat_request import SaveChatRequest, GetChatRequest, DeleteChatRequest, ChatListRequest
+from models.chat_request import SaveChatRequest
 import os
 import shutil
 
@@ -39,7 +35,6 @@ vector_db_cleanup_service = None
 
 # Initialize services
 try:
-    sql_generator = SQLGeneratorService()
     db_knowledge_service = DBKnowledgeService() 
     vector_db_service = VectorDBService()
     service_initialized = True
@@ -61,56 +56,6 @@ def read_root():
 @app.get("/api/test")
 def test_endpoint():
     return {"message": "Backend connection successful"}
-
-@app.post("/api/sql")
-def generate_sql(request: SQLRequest, db: Session = Depends(get_db)):
-    """Generate SQL based on natural language description."""
-    if not service_initialized:
-        raise HTTPException(status_code=503, detail="Services not initialized. Check API key.")
-        
-    if not request.description:
-        raise HTTPException(status_code=400, detail="Description cannot be empty")
-    
-    sql = sql_generator.generate_sql(request.description, request.dialect)
-    
-    # Add to history
-    history_item = HistoryService.add_sql_history(
-        db,
-        description=request.description,
-        dialect=request.dialect,
-        generated_sql=sql
-    )
-    
-    return {"sql": sql, "history_id": history_item.id}
-
-@app.get("/api/history/sql")
-def get_sql_history(db: Session = Depends(get_db)):
-    """Get SQL generation history."""
-    history_items = HistoryService.get_sql_history(db)
-    
-    return {"history": [item.to_dict() for item in history_items]}
-
-
-@app.get("/api/history/sql/{history_id}")
-def get_sql_history_by_id(history_id: int, db: Session = Depends(get_db)):
-    """Get a specific SQL history item by ID."""
-    history_item = HistoryService.get_sql_history_by_id(db, history_id)
-    
-    if not history_item:
-        raise HTTPException(status_code=404, detail="History item not found")
-    
-    return history_item.to_dict()
-
-
-@app.delete("/api/history/sql")
-def delete_sql_history(request: HistoryDeleteRequest, db: Session = Depends(get_db)):
-    """Delete a specific SQL history item by ID."""
-    success = HistoryService.delete_sql_history(db, request.history_id)
-    
-    if not success:
-        raise HTTPException(status_code=404, detail="History item not found")
-    
-    return {"success": True}
 
 
 @app.post("/api/knowledge")
@@ -195,37 +140,6 @@ def get_chat(conversation_id: str, db: Session = Depends(get_db)):
     except Exception as e:
         print(f"Error getting chat: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error getting chat: {str(e)}")
-
-@app.get("/api/chat/list")
-def list_chats(limit: int = 20, offset: int = 0, db: Session = Depends(get_db)):
-    """List chat conversations."""
-    try:
-        chat_histories = ChatHistoryService.list_chats(db, limit, offset)
-        
-        return {"chats": [chat.to_dict() for chat in chat_histories]}
-    except Exception as e:
-        print(f"Error listing chats: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error listing chats: {str(e)}")
-
-@app.delete("/api/chat/{conversation_id}")
-def delete_chat(conversation_id: str, db: Session = Depends(get_db)):
-    """Delete a specific chat conversation by ID."""
-    try:
-        success = ChatHistoryService.delete_chat(db, conversation_id)
-        
-        if not success:
-            raise HTTPException(status_code=404, detail="Chat conversation not found")
-        
-        # Also clear the memory for this conversation
-        if db_knowledge_service:
-            db_knowledge_service.clear_conversation_memory(conversation_id)
-        
-        return {"success": True}
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"Error deleting chat: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error deleting chat: {str(e)}")
 
 @app.post("/api/chat/new")
 def create_new_chat(db: Session = Depends(get_db)):

@@ -1,5 +1,5 @@
 import streamlit as st
-from utils.api import answer_db_question, save_chat, get_chat, list_chats, delete_chat, create_new_chat
+from utils.api import answer_db_question, save_chat
 import uuid
 
 def render_db_knowledge_page():

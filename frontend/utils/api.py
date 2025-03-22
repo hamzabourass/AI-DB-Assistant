@@ -416,3 +416,151 @@ def upload_knowledge_document(file):
             "error": "Erreur de connexion",
             "message": str(e)
         }
+
+def list_knowledge_files():
+    """Get a list of all knowledge files."""
+    try:
+        response = requests.get(
+            f"{API_URL}/api/vector-db/cleanup/files",
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return {
+                "error": f"Error: {response.status_code}",
+                "message": response.text if response.text else "Unknown error"
+            }
+    except Exception as e:
+        return {
+            "error": "Connection error",
+            "message": str(e)
+        }
+
+def backup_knowledge_files():
+    """Create a backup of all knowledge files."""
+    try:
+        response = requests.post(
+            f"{API_URL}/api/vector-db/cleanup/backup",
+            timeout=30  # Longer timeout for backup
+        )
+        
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return {
+                "error": f"Error: {response.status_code}",
+                "message": response.text if response.text else "Unknown error"
+            }
+    except Exception as e:
+        return {
+            "error": "Connection error",
+            "message": str(e)
+        }
+
+def delete_knowledge_file(file_path):
+    """Delete a specific knowledge file."""
+    try:
+        response = requests.delete(
+            f"{API_URL}/api/vector-db/cleanup/file",
+            params={"file_path": file_path},
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return {
+                "error": f"Error: {response.status_code}",
+                "message": response.text if response.text else "Unknown error"
+            }
+    except Exception as e:
+        return {
+            "error": "Connection error",
+            "message": str(e)
+        }
+
+def delete_files_by_category(category):
+    """Delete all files of a specific category."""
+    try:
+        response = requests.delete(
+            f"{API_URL}/api/vector-db/cleanup/category/{category}",
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return {
+                "error": f"Error: {response.status_code}",
+                "message": response.text if response.text else "Unknown error"
+            }
+    except Exception as e:
+        return {
+            "error": "Connection error",
+            "message": str(e)
+        }
+
+def clear_vector_db():
+    """Clear the vector database without deleting knowledge files."""
+    try:
+        response = requests.post(
+            f"{API_URL}/api/vector-db/cleanup/clear-db",
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return {
+                "error": f"Error: {response.status_code}",
+                "message": response.text if response.text else "Unknown error"
+            }
+    except Exception as e:
+        return {
+            "error": "Connection error",
+            "message": str(e)
+        }
+
+def reindex_knowledge():
+    """Reindex all knowledge files."""
+    try:
+        response = requests.post(
+            f"{API_URL}/api/vector-db/cleanup/reindex",
+            timeout=60  # Longer timeout for reindexing
+        )
+        
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return {
+                "error": f"Error: {response.status_code}",
+                "message": response.text if response.text else "Unknown error"
+            }
+    except Exception as e:
+        return {
+            "error": "Connection error",
+            "message": str(e)
+        }
+
+def clear_all_knowledge():
+    """Clear all knowledge files AND the vector database."""
+    try:
+        response = requests.post(
+            f"{API_URL}/api/vector-db/cleanup/clear-all",
+            timeout=30  # Longer timeout for complete cleanup
+        )
+        
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return {
+                "error": f"Error: {response.status_code}",
+                "message": response.text if response.text else "Unknown error"
+            }
+    except Exception as e:
+        return {
+            "error": "Connection error",
+            "message": str(e)
+        }

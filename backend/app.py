@@ -1,18 +1,21 @@
 from fastapi import FastAPI, HTTPException, Depends, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+
 from services.sql_generator import SQLGeneratorService
 from services.db_knowledge import DBKnowledgeService
 from services.history_service import HistoryService
 from services.vector_db import VectorDBService
 from services.vector_db_inspector import VectorDBInspector
+from services.vector_db_cleanup import VectorDBCleanupService
+from services.chat_history_service import ChatHistoryService
+
 from models.sql_request import SQLRequest
 from models.knowledge_request import KnowledgeRequest
 from models.history_request import HistoryDeleteRequest
 from models.history import ChatHistory, get_db
 from sqlalchemy.orm import Session
 from models.chat_request import SaveChatRequest, GetChatRequest, DeleteChatRequest, ChatListRequest
-from services.chat_history_service import ChatHistoryService
 import os
 import shutil
 
@@ -32,6 +35,7 @@ sql_generator = None
 db_knowledge_service = None
 vector_db_service = None
 service_initialized = False
+vector_db_cleanup_service = None
 
 # Initialize services
 try:
@@ -40,6 +44,9 @@ try:
     vector_db_service = VectorDBService()
     service_initialized = True
     print("Services initialized successfully")
+    if vector_db_service:
+        vector_db_cleanup_service = VectorDBCleanupService(vector_db_service)
+        print("Vector DB cleanup service initialized successfully")
 except Exception as e:
     print(f"Error initializing services: {e}")
 
@@ -420,4 +427,173 @@ async def upload_knowledge_document(file: UploadFile = File(...)):
         return JSONResponse(
             status_code=500,
             content={"error": f"Erreur lors du téléchargement du document : {str(e)}"}
+        )
+
+
+@app.get("/api/vector-db/cleanup/files")
+async def list_knowledge_files():
+    """List all knowledge files that can be cleaned up."""
+    if not service_initialized:
+        raise HTTPException(status_code=503, detail="Services not initialized. Check API key.")
+    
+    if not vector_db_cleanup_service:
+        raise HTTPException(status_code=503, detail="Vector DB cleanup service not initialized.")
+    
+    try:
+        files_info = vector_db_cleanup_service.list_knowledge_files()
+        return {"files": files_info}
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Error listing knowledge files: {str(e)}"}
+        )
+
+@app.post("/api/vector-db/cleanup/backup")
+async def backup_knowledge_files():
+    """Create a backup of all knowledge files."""
+    if not service_initialized:
+        raise HTTPException(status_code=503, detail="Services not initialized. Check API key.")
+    
+    if not vector_db_cleanup_service:
+        raise HTTPException(status_code=503, detail="Vector DB cleanup service not initialized.")
+    
+    try:
+        success, message = vector_db_cleanup_service.backup_knowledge_files()
+        
+        if success:
+            return {"message": message}
+        else:
+            return JSONResponse(
+                status_code=500,
+                content={"error": message}
+            )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Error backing up knowledge files: {str(e)}"}
+        )
+
+@app.delete("/api/vector-db/cleanup/file")
+async def delete_knowledge_file(file_path: str):
+    """Delete a specific knowledge file."""
+    if not service_initialized:
+        raise HTTPException(status_code=503, detail="Services not initialized. Check API key.")
+    
+    if not vector_db_cleanup_service:
+        raise HTTPException(status_code=503, detail="Vector DB cleanup service not initialized.")
+    
+    try:
+        success, message = vector_db_cleanup_service.delete_knowledge_file(file_path)
+        
+        if success:
+            return {"message": message}
+        else:
+            return JSONResponse(
+                status_code=404 if "not found" in message else 500,
+                content={"error": message}
+            )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Error deleting knowledge file: {str(e)}"}
+        )
+
+@app.delete("/api/vector-db/cleanup/category/{category}")
+async def delete_files_by_category(category: str):
+    """Delete all files of a specific category."""
+    if not service_initialized:
+        raise HTTPException(status_code=503, detail="Services not initialized. Check API key.")
+    
+    if not vector_db_cleanup_service:
+        raise HTTPException(status_code=503, detail="Vector DB cleanup service not initialized.")
+    
+    try:
+        success, message = vector_db_cleanup_service.delete_files_by_category(category)
+        
+        if success:
+            return {"message": message}
+        else:
+            return JSONResponse(
+                status_code=404 if "No files found" in message else 500,
+                content={"error": message}
+            )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Error deleting files by category: {str(e)}"}
+        )
+
+@app.post("/api/vector-db/cleanup/clear-db")
+async def clear_vector_db():
+    """Clear the vector database without deleting knowledge files."""
+    if not service_initialized:
+        raise HTTPException(status_code=503, detail="Services not initialized. Check API key.")
+    
+    if not vector_db_cleanup_service:
+        raise HTTPException(status_code=503, detail="Vector DB cleanup service not initialized.")
+    
+    try:
+        success, message = vector_db_cleanup_service.clear_vector_db()
+        
+        if success:
+            return {"message": message}
+        else:
+            return JSONResponse(
+                status_code=500,
+                content={"error": message}
+            )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Error clearing vector database: {str(e)}"}
+        )
+
+@app.post("/api/vector-db/cleanup/reindex")
+async def reindex_knowledge():
+    """Reindex all knowledge files."""
+    if not service_initialized:
+        raise HTTPException(status_code=503, detail="Services not initialized. Check API key.")
+    
+    if not vector_db_cleanup_service:
+        raise HTTPException(status_code=503, detail="Vector DB cleanup service not initialized.")
+    
+    try:
+        success, message = vector_db_cleanup_service.reindex_knowledge()
+        
+        if success:
+            return {"message": message}
+        else:
+            return JSONResponse(
+                status_code=500,
+                content={"error": message}
+            )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Error reindexing knowledge: {str(e)}"}
+        )
+
+@app.post("/api/vector-db/cleanup/clear-all")
+async def clear_all_knowledge():
+    """Clear all knowledge files AND the vector database."""
+    if not service_initialized:
+        raise HTTPException(status_code=503, detail="Services not initialized. Check API key.")
+    
+    if not vector_db_cleanup_service:
+        raise HTTPException(status_code=503, detail="Vector DB cleanup service not initialized.")
+    
+    try:
+        success, message = vector_db_cleanup_service.clear_all_knowledge()
+        
+        if success:
+            return {"message": message}
+        else:
+            return JSONResponse(
+                status_code=500,
+                content={"error": message}
+            )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Error clearing all knowledge: {str(e)}"}
         )

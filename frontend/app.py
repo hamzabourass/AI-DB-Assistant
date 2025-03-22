@@ -1,9 +1,10 @@
 import streamlit as st
+
 from modules.home import render_home_page
-from modules.sql_generator import render_sql_generator_page
 from modules.db_knowledge import render_db_knowledge_page
 from modules.vector_db_explorer import render_vector_db_explorer_page
-from modules.sqlite_db_explorer import render_sqlite_db_explorer_page
+from modules.vector_db_cleanup import render_vector_db_cleanup_page
+
 from utils.api import check_api_status
 from utils.styles import load_css
 
@@ -23,9 +24,10 @@ PAGES = {
     "🏠  Accueil": "Accueil",
     "💬  Assistant Base de Données": "Assistant Base de Données",
     "🔍  Explorateur BDD Vectorielle": "Explorateur de Base Vectorielle",
+    "🧹  Maintenance Vectorielle": "Maintenance Vectorielle",  # Add this line
+
 }
 
-# Configuration de la barre latérale
 def render_sidebar():
     with st.sidebar:
         st.title("Assistant BDD IA")
@@ -75,6 +77,8 @@ def main():
         render_db_knowledge_page()
     elif selected_page == "Explorateur de Base Vectorielle":
         render_vector_db_explorer_page()
+    elif selected_page == "Maintenance Vectorielle":  # Add this condition
+        render_vector_db_cleanup_page()
 
 
 if __name__ == "__main__":

@@ -15,14 +15,11 @@ def render_vector_db_explorer_page():
     """Affiche la page d'explorateur de base de données vectorielle."""
     st.title("Explorateur de Base de Données Vectorielle")
     
-    # Onglets pour différentes vues
     tab1, tab2, tab3 = st.tabs(["Aperçu", "Explorateur de Documents", "Recherche"])
     
-    # Onglet Aperçu
     with tab1:
         st.header("Aperçu de la Base de Données Vectorielle")
         
-        # Bouton d'actualisation
         if st.button("Actualiser les statistiques"):
             st.cache_data.clear()
         
@@ -31,7 +28,6 @@ def render_vector_db_explorer_page():
         if "error" in stats:
             st.error(f"Erreur lors de la récupération des statistiques : {stats['error']}")
         else:
-            # Affichage des statistiques de base
             col1, col2 = st.columns(2)
             
             with col1:
@@ -42,11 +38,9 @@ def render_vector_db_explorer_page():
                 st.metric("Longueur Moyenne des Documents", f"{int(stats.get('average_document_length', 0))} caractères")
                 st.metric("Nombre de Sources", len(stats.get("sources", {})))
             
-            # Affichage de la distribution des sources
             if stats.get("sources"):
                 st.subheader("Sources des Documents")
                 
-                # Conversion en dataframe pour l'affichage
                 sources_df = pd.DataFrame({
                     "Source": list(stats["sources"].keys()),
                     "Nombre": list(stats["sources"].values())
@@ -54,22 +48,17 @@ def render_vector_db_explorer_page():
                 
                 sources_df = sources_df.sort_values("Nombre", ascending=False)
                 
-                # Création d'un graphique en camembert
                 fig, ax = plt.subplots(figsize=(10, 6))
                 ax.pie(sources_df["Nombre"], labels=sources_df["Source"], autopct='%1.1f%%')
                 ax.axis('equal')
                 st.pyplot(fig)
                 
-                # Affichage sous forme de tableau
                 st.dataframe(sources_df)
         
-        # Téléchargement de nouveaux documents avec support multi-format
         st.subheader("Télécharger un Nouveau Document")
         
-        # Liste des formats de fichiers acceptés
         accepted_formats = ["txt", "pdf", "docx", "md", "csv", "json", "xml", "html"]
         
-        # Information sur les formats supportés
         with st.expander("Formats de fichiers supportés"):
             st.markdown("""
             L'indexation vectorielle peut traiter les formats suivants :
@@ -82,7 +71,6 @@ def render_vector_db_explorer_page():
             Note : Les fichiers volumineux peuvent prendre plus de temps à indexer.
             """)
         
-        # Widget de téléchargement avec multiple formats
         uploaded_file = st.file_uploader(
             "Choisissez un fichier à indexer", 
             type=accepted_formats,
@@ -90,7 +78,6 @@ def render_vector_db_explorer_page():
         )
         
         if uploaded_file is not None:
-            # Affichage des informations sur le fichier
             file_details = {
                 "Nom du fichier": uploaded_file.name,
                 "Type de fichier": uploaded_file.type,
@@ -101,10 +88,8 @@ def render_vector_db_explorer_page():
             for k, v in file_details.items():
                 st.write(f"- **{k}:** {v}")
             
-            # Option pour prévisualiser le contenu (pour les fichiers texte)
             if uploaded_file.type.startswith("text/") or uploaded_file.name.endswith(".txt"):
                 if st.checkbox("Prévisualiser le contenu"):
-                    # Lecture et affichage du contenu
                     content = uploaded_file.getvalue().decode("utf-8")
                     st.text_area("Aperçu du contenu", value=content[:1000] + ("..." if len(content) > 1000 else ""), height=200)
             
@@ -116,23 +101,18 @@ def render_vector_db_explorer_page():
                     st.error(f"Erreur lors du téléchargement du document : {result['error']}")
                 else:
                     st.success(result.get("message", "Document téléchargé avec succès"))
-                    # Effacer le cache pour que le nouveau document apparaisse
                     st.cache_data.clear()
                     time.sleep(1)
                     st.rerun()
     
-    # Onglet Explorateur de Documents
     with tab2:
         st.header("Explorateur de Documents")
         
-        # Obtention des documents avec pagination
         page_size = 10
         current_page = st.session_state.get("current_page", 1)
         
-        # Calcul du décalage
         offset = (current_page - 1) * page_size
         
-        # Récupération des documents
         docs_result = get_vector_db_documents_cached(limit=page_size, offset=offset)
         
         if "error" in docs_result:
@@ -142,7 +122,6 @@ def render_vector_db_explorer_page():
             total_docs = docs_result.get("total", 0)
             total_pages = (total_docs + page_size - 1) // page_size if total_docs > 0 else 1
             
-            # Contrôles de pagination
             col1, col2, col3, col4 = st.columns([1, 3, 3, 1])
             
             with col1:
@@ -155,7 +134,6 @@ def render_vector_db_explorer_page():
                 st.write(f"Page {current_page} sur {total_pages}")
             
             with col3:
-                # Saisie du numéro de page
                 page_input = st.number_input(
                     "Aller à la page", 
                     min_value=1, 
@@ -174,7 +152,6 @@ def render_vector_db_explorer_page():
                         st.session_state.current_page = current_page + 1
                         st.rerun()
             
-            # Affichage des documents
             if documents:
                 for doc in documents:
                     with st.expander(f"Document : {doc.get('id', 'Inconnu')}"):
@@ -194,7 +171,6 @@ def render_vector_db_explorer_page():
             else:
                 st.info("Aucun document trouvé dans la base de données vectorielle.")
     
-    # Onglet Recherche
     with tab3:
         st.header("Rechercher dans la Base de Données Vectorielle")
         
@@ -215,7 +191,7 @@ def render_vector_db_explorer_page():
                 else:
                     for i, result in enumerate(search_results):
                         similarity = result.get("similarity_score", 0)
-                        similarity_percentage = (1 - similarity) * 100  # Conversion de la distance en pourcentage de similarité
+                        similarity_percentage = (1 - similarity) * 100
                         
                         with st.expander(f"Résultat {i+1} - Similarité : {similarity_percentage:.2f}%"):
                             st.markdown("#### Métadonnées")

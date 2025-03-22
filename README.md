@@ -158,7 +158,7 @@ Le diagramme ci-dessous illustre les interactions entre les différents composan
    - Les documents pertinents sont fusionnés avec la question dans un prompt enrichi
 
 3. **Génération de réponse augmentée** :
-   - Le modèle de langage (Mixtral 8x7B via Groq) reçoit le prompt enrichi
+   - Le modèle de langage (llama-3.3-70b-versatile) reçoit le prompt enrichi
    - Le contexte supplémentaire aide le modèle à générer une réponse plus précise et factuelle
    - L'historique de conversation est également inclus pour maintenir la cohérence des échanges
 

@@ -101,6 +101,7 @@ cd ../backend
 2. Ajoutez vos clés API et configurez les variables d'environnement dans le fichier `.env` :
 
 ```
+# Va sur https://console.groq.com/, connecte-toi, puis crée une clé API dans la section "API Keys" et cree un api key
 # API Groq pour les modèles de langage
 GROQ_API_KEY=votre_clé_api_groq
 

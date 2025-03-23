@@ -26,6 +26,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # Global service variables
 sql_generator = None
 db_knowledge_service = None
@@ -285,8 +286,6 @@ def search_vector_db(query: str, k: int = 5):
             content={"error": f"Error searching vector DB: {str(e)}"}
         )
 
-# Cet extrait montre uniquement la fonction d'upload modifiée, à intégrer dans votre app.py
-
 
 @app.post("/api/vector-db/upload")
 async def upload_knowledge_document(file: UploadFile = File(...)):
@@ -344,9 +343,11 @@ async def upload_knowledge_document(file: UploadFile = File(...)):
         )
 
 
+
 @app.get("/api/vector-db/cleanup/files")
 async def list_knowledge_files():
     """List all knowledge files that can be cleaned up."""
+    print("Route /api/vector-db/cleanup/files registered")
     if not service_initialized:
         raise HTTPException(status_code=503, detail="Services not initialized. Check API key.")
     
@@ -361,6 +362,8 @@ async def list_knowledge_files():
             status_code=500,
             content={"error": f"Error listing knowledge files: {str(e)}"}
         )
+
+
 
 @app.post("/api/vector-db/cleanup/backup")
 async def backup_knowledge_files():

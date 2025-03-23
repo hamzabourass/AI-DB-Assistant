@@ -16,6 +16,11 @@ Une application moderne combinant interface Streamlit et intelligence artificiel
 - [Utilisation](#utilisation)
   - [Démarrage des services](#démarrage-des-services)
   - [Accès à l'interface](#accès-à-linterface)
+- [Guide d'utilisation des fonctionnalités](#guide-dutilisation-des-fonctionnalités)
+  - [Page d'accueil](#page-daccueil)
+  - [Assistant Base de Données](#assistant-base-de-données)
+  - [Explorateur BDD Vectorielle](#explorateur-bdd-vectorielle)
+  - [Maintenance Vectorielle](#maintenance-vectorielle)
 - [Architecture RAG (Retrieval Augmented Generation)](#architecture-rag-retrieval-augmented-generation)
 - [Technologies utilisées](#technologies-utilisées)
 - [Structure du projet](#structure-du-projet)
@@ -140,6 +145,116 @@ Ouvrez votre navigateur et accédez à l'URL :
 http://localhost:8501
 ```
 
+## Guide d'utilisation des fonctionnalités
+
+### Page d'accueil
+
+![Page d'accueil](/docs/screenshots/home.png)
+
+La page d'accueil vous présente une vue d'ensemble de l'application avec :
+
+- **Présentation générale** : Une introduction aux fonctionnalités de l'application
+- **Cartes de fonctionnalités** : Les différents modules disponibles
+- **État du système** : Indicateur de l'état de connexion à l'API backend
+- **Démarrage rapide** : Instructions pour commencer à utiliser l'application
+
+**Pour naviguer dans l'application** :
+- Utilisez le menu de navigation dans la barre latérale gauche
+- Chaque menu vous dirige vers une fonctionnalité spécifique de l'application
+
+### Assistant Base de Données
+
+![Assistant BDD](/docs/screenshots/assistant.png)
+
+L'Assistant de Base de Données vous permet d'interagir en langage naturel pour :
+
+- **Poser des questions** sur la base donnee RAG et les concepts de bases de données
+- **Obtenir des explications** sur la syntaxe SQL
+- **Demander des conseils** sur les techniques d'optimisation
+- **Générer des requêtes SQL** à partir de descriptions en langage naturel
+
+**Comment utiliser l'Assistant** :
+1. Tapez votre question dans le champ de texte en bas de l'écran
+2. Cliquez sur "Envoyer" ou appuyez sur Entrée
+3. L'assistant analysera votre question et fournira une réponse contextualisée
+4. Les conversations sont automatiquement sauvegardées pour référence future
+
+**Exemples de questions** :
+- "Quel est le schéma de notre base de données ?"
+- "Comment optimiser une requête qui fait plusieurs jointures ?"
+- "Génère une requête SQL pour trouver tous les produits avec un prix plus de 20"
+- "Explique-moi la différence entre INNER JOIN et LEFT JOIN"
+
+### Explorateur BDD Vectorielle
+
+![Explorateur BDD Vectorielle](/docs/screenshots/explorer.png)
+
+L'Explorateur de Base de Données Vectorielle vous permet de :
+
+#### Onglet Aperçu
+- **Visualiser les statistiques** de la base vectorielle (nombre de documents, dimensions, etc.)
+- **Consulter la répartition** des sources de documents dans un graphique
+- **Télécharger de nouveaux documents** à ajouter à la base de connaissances
+
+**Pour télécharger un document** :
+1. Cliquez sur "Parcourir les fichiers" ou faites glisser votre fichier dans la zone
+2. Vérifiez les détails du fichier
+3. Cliquez sur "Télécharger et Indexer le Document"
+4. Attendez que l'indexation soit terminée
+
+![Téléchargement de documents](/docs/screenshots/upload.png)
+
+#### Onglet Explorateur de Documents
+- **Parcourir tous les documents** indexés dans la base vectorielle
+- **Consulter les métadonnées** et le contenu de chaque document
+- **Naviguer entre les pages** de résultats
+
+![Exploration de documents](/docs/screenshots/documents.png)
+
+#### Onglet Recherche
+- **Rechercher du contenu** dans la base vectorielle en langage naturel
+- **Ajuster le nombre de résultats** à afficher
+- **Consulter les documents** les plus pertinents pour votre recherche avec leur score de similarité
+
+![Recherche vectorielle](/docs/screenshots/search.png)
+
+### Maintenance Vectorielle
+
+![Maintenance Vectorielle](/docs/screenshots/maintenance.png)
+
+La page de Maintenance Vectorielle est un outil d'administration permettant de :
+
+#### Onglet Fichiers de Connaissance
+- **Voir tous les fichiers** présents dans la base de connaissances
+- **Filtrer les fichiers** par catégorie
+- **Supprimer des fichiers** individuellement ou par catégorie
+- **Créer des sauvegardes** de tous les fichiers
+
+**Pour supprimer un fichier** :
+1. Sélectionnez le fichier dans la liste déroulante
+2. Cliquez sur "Supprimer le fichier sélectionné"
+3. Confirmez la suppression
+
+![Gestion des fichiers](/docs/screenshots/files.png)
+
+#### Onglet Base Vectorielle
+- **Vider la base vectorielle** sans supprimer les fichiers source
+- **Réindexer tous les fichiers** pour reconstruire la base vectorielle
+- **Consulter les statistiques** détaillées de la base vectorielle
+- **Voir des recommandations** pour optimiser les performances
+
+![Gestion de la base vectorielle](/docs/screenshots/vectordb.png)
+![Gestion de la base vectorielle](/docs/screenshots/vectordb2.png)
+
+#### Onglet Réinitialisation Complète
+- **Réinitialiser entièrement** le système (avec création automatique d'une sauvegarde)
+- **Supprimer tous les fichiers** et vider la base vectorielle
+- **Accéder aux informations de diagnostic** pour résoudre les problèmes
+
+**Attention** : Cette section contient des actions destructives qui ne peuvent pas être annulées. Utilisez avec précaution !
+
+![Réinitialisation du système](/docs/screenshots/reset.png)
+
 ## Architecture RAG (Retrieval Augmented Generation)
 
 L'Assistant de Base de Données utilise l'architecture RAG (Retrieval Augmented Generation) pour améliorer la qualité des réponses générées par le modèle de langage. Voici comment fonctionne le processus :
@@ -211,35 +326,9 @@ assistant-bdd-ia/
 │   ├── modules/                 # Modules de l'interface utilisateur
 │   │   └── vector_db_cleanup.py # Interface de maintenance vectorielle
 │   └── utils/                   # Utilitaires (connexion API, styles)
+├── docs/
+│   ├── image.png                # Diagramme d'architecture
+│   └── screenshots/             # Captures d'écran de l'application
 └── README.md                    # Documentation du projet
 ```
 
-## Maintenance de la base vectorielle
-
-L'application comprend une interface d'administration pour gérer la base de connaissances vectorielle. Cette fonctionnalité vous permet de :
-
-### Gestion des fichiers de connaissance
-
-- **Explorer les fichiers** : Visualisez tous les fichiers de connaissance avec leurs métadonnées (taille, date de modification, catégorie)
-- **Filtrer par catégorie** : Affichez uniquement les fichiers d'un certain type (documents, textes, etc.)
-- **Supprimer des fichiers** : Supprimez des fichiers individuels ou tous les fichiers d'une catégorie spécifique
-- **Créer des sauvegardes** : Sauvegardez tous vos fichiers de connaissance avant d'effectuer des modifications importantes
-
-### Maintenance de la base vectorielle
-
-- **Vider la base vectorielle** : Réinitialisez l'index vectoriel tout en conservant les fichiers sources
-- **Réindexer les fichiers** : Reconstruisez l'index vectoriel à partir des fichiers existants
-- **Statistiques et diagnostics** : Visualisez des statistiques détaillées sur votre base vectorielle (nombre de documents, dimensions, distribution des sources)
-
-### Réinitialisation complète
-
-- **Réinitialisation du système** : Option pour réinitialiser complètement le système en supprimant tous les fichiers et en vidant la base vectorielle
-- **Sauvegarde automatique** : Une sauvegarde est automatiquement créée avant toute réinitialisation complète pour éviter les pertes de données accidentelles
-
-### Comment accéder à la maintenance
-
-1. Naviguez vers la page "Maintenance Vectorielle" dans la barre latérale de l'application
-2. Utilisez les onglets pour accéder aux différentes fonctionnalités de maintenance
-3. Suivez les instructions à l'écran pour effectuer les opérations souhaitées
-
-Cette fonctionnalité est particulièrement utile pour maintenir les performances optimales du système RAG et résoudre les problèmes potentiels avec les documents de la base de connaissances.

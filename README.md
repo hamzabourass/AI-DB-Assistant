@@ -186,7 +186,6 @@ ffmpeg -version
 
 ```bash
 cd backend
-pip install -r requirements.txt
 uvicorn app:app --reload --port 8000
 ```
 
@@ -194,7 +193,6 @@ uvicorn app:app --reload --port 8000
 
 ```bash
 cd frontend
-pip install -r requirements.txt
 streamlit run app.py
 ```
 

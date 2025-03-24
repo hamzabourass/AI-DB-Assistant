@@ -118,6 +118,58 @@ python scripts/initialize_db.py
 
 Ce script va créer la base vectorielle et y indexer les documents présents dans le dossier `backend/knowledge`.
 
+### Installation de FFmpeg
+
+FFmpeg est nécessaire pour la fonctionnalité de transcription vidéo. Voici comment l'installer selon votre système d'exploitation :
+
+#### Windows (avec Chocolatey)
+
+1. Installer Chocolatey si ce n'est pas déjà fait :
+   - Ouvrez PowerShell en tant qu'administrateur
+   - Exécutez la commande :
+   ```powershell
+   Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+   ```
+
+2. Installer FFmpeg avec Chocolatey :
+   ```powershell
+   choco install ffmpeg
+   ```
+
+3. Vérifier l'installation :
+   ```powershell
+   ffmpeg -version
+   ```
+
+#### Windows (installation manuelle)
+
+1. Téléchargez FFmpeg depuis [le site officiel](https://ffmpeg.org/download.html) (version "Windows builds")
+2. Extrayez l'archive téléchargée
+3. Ajoutez le dossier `bin` à votre variable d'environnement PATH
+4. Vérifiez l'installation en ouvrant une nouvelle invite de commande et en tapant `ffmpeg -version`
+
+#### macOS
+
+Avec Homebrew :
+```bash
+brew install ffmpeg
+```
+
+#### Linux (Ubuntu/Debian)
+
+```bash
+sudo apt update
+sudo apt install ffmpeg
+```
+
+#### Vérification
+
+Pour vérifier que FFmpeg est correctement installé, exécutez :
+```bash
+ffmpeg -version
+```
+
+
 ## Utilisation
 
 ### Démarrage des services

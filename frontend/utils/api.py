@@ -413,3 +413,75 @@ def clear_all_knowledge():
             "error": "Connection error",
             "message": str(e)
         }
+
+
+def upload_video_for_transcription(file, model_size="base"):
+    """Upload a video file for transcription and indexing."""
+    try:
+        # Create a FormData-like structure
+        files = {"file": (file.name, file, file.type)}
+        
+        # Add model_size as a form field
+        data = {"model_size": model_size}
+        
+        response = requests.post(
+            f"{API_URL}/api/video-transcription/upload",
+            files=files,
+            data=data,
+            timeout=300  # Longer timeout for video processing
+        )
+        
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return {
+                "error": f"Error: {response.status_code}",
+                "message": response.text if response.text else "Unknown error"
+            }
+    except Exception as e:
+        return {
+            "error": "Connection error",
+            "message": str(e)
+        }
+
+def list_transcriptions():
+    """Get list of available video transcriptions."""
+    try:
+        response = requests.get(
+            f"{API_URL}/api/video-transcription/list",
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return {
+                "error": f"Error: {response.status_code}",
+                "message": response.text if response.text else "Unknown error"
+            }
+    except Exception as e:
+        return {
+            "error": "Connection error",
+            "message": str(e)
+        }
+
+def get_transcription(transcription_id):
+    """Get a specific transcription by ID."""
+    try:
+        response = requests.get(
+            f"{API_URL}/api/video-transcription/{transcription_id}",
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return {
+                "error": f"Error: {response.status_code}",
+                "message": response.text if response.text else "Unknown error"
+            }
+    except Exception as e:
+        return {
+            "error": "Connection error",
+            "message": str(e)
+        }

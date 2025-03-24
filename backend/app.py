@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, UploadFile, File
+from fastapi import FastAPI, HTTPException, Depends, UploadFile, File,Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -7,6 +7,7 @@ from services.vector_db import VectorDBService
 from services.vector_db_inspector import VectorDBInspector
 from services.vector_db_cleanup import VectorDBCleanupService
 from services.chat_history_service import ChatHistoryService
+from services.video_transcription import VideoTranscriptionService
 
 from models.knowledge_request import KnowledgeRequest
 from models.history import ChatHistory, get_db
@@ -43,6 +44,11 @@ try:
     if vector_db_service:
         vector_db_cleanup_service = VectorDBCleanupService(vector_db_service)
         print("Vector DB cleanup service initialized successfully")
+    
+    if vector_db_service:
+        video_transcription_service = VideoTranscriptionService(vector_db_service)
+        print("Video transcription service initialized successfully")
+
 except Exception as e:
     print(f"Error initializing services: {e}")
 
@@ -513,4 +519,116 @@ async def clear_all_knowledge():
         return JSONResponse(
             status_code=500,
             content={"error": f"Error clearing all knowledge: {str(e)}"}
+        )
+
+@app.post("/api/video-transcription/upload")
+async def upload_video_for_transcription(
+    file: UploadFile = File(...),
+    model_size: str = Form("base")
+):
+    """Upload a video file for transcription and add to the knowledge base."""
+    if not service_initialized:
+        raise HTTPException(status_code=503, detail="Services not initialized. Check API key.")
+    
+    if not video_transcription_service:
+        raise HTTPException(status_code=503, detail="Video transcription service not initialized.")
+    
+    # Validate file type
+    allowed_extensions = ['.mp4', '.avi', '.mov', '.mkv', '.webm']
+    file_extension = os.path.splitext(file.filename)[1].lower()
+    
+    if file_extension not in allowed_extensions:
+        return JSONResponse(
+            status_code=400,
+            content={"error": f"Unsupported file type. Allowed extensions: {', '.join(allowed_extensions)}"}
+        )
+    
+    try:
+        # Process the video and get the transcription
+        result = video_transcription_service.transcribe_video(file, model_size)
+        
+        return {
+            "message": f"Video {file.filename} transcribed and indexed successfully",
+            "details": result
+        }
+    except Exception as e:
+        import traceback
+        print(f"Error transcribing video: {str(e)}")
+        print(traceback.format_exc())
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Error transcribing video: {str(e)}"}
+        )
+
+@app.get("/api/video-transcription/list")
+async def list_transcriptions():
+    """List all available video transcriptions."""
+    if not service_initialized:
+        raise HTTPException(status_code=503, detail="Services not initialized. Check API key.")
+    
+    if not video_transcription_service:
+        raise HTTPException(status_code=503, detail="Video transcription service not initialized.")
+    
+    try:
+        transcription_dir = video_transcription_service.transcription_dir
+        if not os.path.exists(transcription_dir):
+            return {"transcriptions": []}
+        
+        transcriptions = []
+        for file in os.listdir(transcription_dir):
+            if file.endswith("_transcription.txt"):
+                file_path = os.path.join(transcription_dir, file)
+                
+                # Get file stats
+                stats = os.stat(file_path)
+                
+                # Extract original video name
+                video_name = file.replace("_transcription.txt", "")
+                
+                transcriptions.append({
+                    "name": file,
+                    "video_name": video_name,
+                    "path": file_path,
+                    "size": stats.st_size,
+                    "created": stats.st_ctime,
+                    "modified": stats.st_mtime
+                })
+        
+        return {"transcriptions": transcriptions}
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Error listing transcriptions: {str(e)}"}
+        )
+
+@app.get("/api/video-transcription/{transcription_id}")
+async def get_transcription(transcription_id: str):
+    """Get a specific transcription by ID (filename)."""
+    if not service_initialized:
+        raise HTTPException(status_code=503, detail="Services not initialized. Check API key.")
+    
+    if not video_transcription_service:
+        raise HTTPException(status_code=503, detail="Video transcription service not initialized.")
+    
+    try:
+        transcription_dir = video_transcription_service.transcription_dir
+        file_path = os.path.join(transcription_dir, f"{transcription_id}_transcription.txt")
+        
+        if not os.path.exists(file_path):
+            return JSONResponse(
+                status_code=404,
+                content={"error": f"Transcription for {transcription_id} not found"}
+            )
+        
+        with open(file_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        
+        return {
+            "id": transcription_id,
+            "content": content
+        }
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Error retrieving transcription: {str(e)}"}
         )

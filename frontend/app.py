@@ -4,6 +4,7 @@ from modules.home import render_home_page
 from modules.db_knowledge import render_db_knowledge_page
 from modules.vector_db_explorer import render_vector_db_explorer_page
 from modules.vector_db_cleanup import render_vector_db_cleanup_page
+from modules.video_transcription import render_video_transcription_page
 
 from utils.api import check_api_status
 from utils.styles import load_css
@@ -24,7 +25,8 @@ PAGES = {
     "🏠  Accueil": "Accueil",
     "💬  Assistant Base de Données": "Assistant Base de Données",
     "🔍  Explorateur BDD Vectorielle": "Explorateur de Base Vectorielle",
-    "🧹  Maintenance Vectorielle": "Maintenance Vectorielle",  # Add this line
+    "🎥  Transcription Vidéo": "Transcription Vidéo",
+    "🧹  Maintenance Vectorielle": "Maintenance Vectorielle",
 
 }
 
@@ -77,6 +79,10 @@ def main():
         render_db_knowledge_page()
     elif selected_page == "Explorateur de Base Vectorielle":
         render_vector_db_explorer_page()
+        
+    elif selected_page == "Transcription Vidéo":
+       render_video_transcription_page()
+
     elif selected_page == "Maintenance Vectorielle":  # Add this condition
         render_vector_db_cleanup_page()
 

@@ -115,8 +115,16 @@ Pour initialiser la base de données vectorielle avec des connaissances de base 
 cd backend
 python scripts/initialize_db.py
 ```
-
 Ce script va créer la base vectorielle et y indexer les documents présents dans le dossier `backend/knowledge`.
+
+Nous avons créé le schéma de données Customer Order à partir de deux datasets dans Oracle APEX, comme illustré dans l'image ci-dessus.
+
+![alt text](/docs/apexdataset.png)
+Le fichier du schéma se trouve dans le dossier : `/backend/knowledge/`
+
+
+
+
 
 ### Installation de FFmpeg
 
@@ -307,6 +315,49 @@ La page de Maintenance Vectorielle est un outil d'administration permettant de :
 **Attention** : Cette section contient des actions destructives qui ne peuvent pas être annulées. Utilisez avec précaution !
 
 ![Réinitialisation du système](/docs/screenshots/reset.png)
+
+
+### Transcription Audio et Vidéo
+
+Le module de Transcription Audio et Vidéo vous permet de :
+
+#### Onglet Télécharger
+- **Transcription automatique** des fichiers vidéo et audio
+- **Choix du modèle** de transcription selon vos besoins (taille/précision)
+- **Indexation automatique** des transcriptions dans la base vectorielle
+
+**Pour transcription un fichier audio ou vidéo** :
+1. Sélectionnez le modèle de transcription approprié
+   - `tiny` : Le plus rapide, moins précis (1GB VRAM)
+   - `base` : Bon équilibre vitesse/précision (1GB VRAM)
+   - `small` : Plus précis, plus lent (2GB VRAM)
+   - `medium` : Haute précision, lent (5GB VRAM)
+   - `large` : La plus haute précision, très lent (10GB VRAM)
+2. Téléchargez votre fichier vidéo (MP4, AVI, MOV, MKV, WebM) ou audio (MP3, WAV, OGG, M4A)
+3. Cliquez sur "Transcription et indexation"
+4. Attendez que le traitement soit terminé
+
+![Téléchargement de fichiers](/docs/screenshots/transcription-upload.png)
+
+#### Onglet Liste des Transcriptions
+- **Consultez toutes les transcriptions** disponibles
+- **Visualisez le contenu** de chaque transcription
+- **Accédez facilement** aux transcriptions précédentes
+
+![Liste des transcriptions](/docs/screenshots/transcription-list.png)
+
+#### Onglet Recherche
+- **Navigation vers l'explorateur vectoriel** pour rechercher dans les transcriptions
+- **Interrogation via l'assistant** pour obtenir des réponses basées sur vos transcriptions
+
+**Formats pris en charge** :
+- **Vidéo** : MP4, AVI, MOV, MKV, WebM
+- **Audio** : MP3, WAV, OGG, M4A
+
+**Conseils d'utilisation** :
+- Pour de meilleurs résultats, utilisez des enregistrements avec un bon rapport signal/bruit
+- Les modèles plus grands sont plus précis mais nécessitent plus de ressources
+- La transcription s'intègre automatiquement à la base de connaissances et devient interrogeable
 
 ## Architecture RAG (Retrieval Augmented Generation)
 

@@ -48,27 +48,42 @@ class VideoTranscriptionService:
                     detail=f"Failed to load transcription model: {str(e)}"
                 )
     
-    def _extract_audio(self, video_path: str) -> str:
+    def _extract_audio(self, file_path: str) -> str:
         """
-        Extract audio from a video file.
+        Extract audio from a video file or process audio file directly.
         
         Args:
-            video_path: Path to the video file
+            file_path: Path to the video or audio file
             
         Returns:
-            Path to the extracted audio file
+            Path to the processed audio file
         """
         # Create a temporary file for the audio
         audio_path = tempfile.mktemp(suffix=".wav")
         
         try:
-            # Use FFmpeg to extract audio
-            cmd = [
-                "ffmpeg", "-i", video_path, 
-                "-vn", "-acodec", "pcm_s16le", 
-                "-ar", "16000", "-ac", "1",
-                audio_path
-            ]
+            # Check if the file is already an audio file
+            file_extension = os.path.splitext(file_path)[1].lower()
+            audio_extensions = ['.mp3', '.wav', '.ogg', '.m4a', '.flac', '.aac']
+            
+            if file_extension in audio_extensions:
+                # For audio files, just convert to the expected format
+                print(f"Processing audio file: {file_path}")
+                cmd = [
+                    "ffmpeg", "-i", file_path, 
+                    "-acodec", "pcm_s16le", 
+                    "-ar", "16000", "-ac", "1",
+                    audio_path
+                ]
+            else:
+                # For video files, extract audio
+                print(f"Extracting audio from video: {file_path}")
+                cmd = [
+                    "ffmpeg", "-i", file_path, 
+                    "-vn", "-acodec", "pcm_s16le", 
+                    "-ar", "16000", "-ac", "1",
+                    audio_path
+                ]
             
             process = subprocess.Popen(
                 cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
@@ -79,16 +94,16 @@ class VideoTranscriptionService:
                 print(f"FFmpeg error: {stderr.decode()}")
                 raise HTTPException(
                     status_code=500,
-                    detail="Failed to extract audio from video"
+                    detail="Failed to process audio" if file_extension in audio_extensions else "Failed to extract audio from video"
                 )
-                
+            
             return audio_path
             
         except Exception as e:
-            print(f"Error extracting audio: {e}")
+            print(f"Error processing audio: {e}")
             raise HTTPException(
                 status_code=500,
-                detail=f"Error in audio extraction: {str(e)}"
+                detail=f"Error in audio processing: {str(e)}"
             )
     
     def transcribe_video(self, video_file: UploadFile, model_size: str = "base") -> Dict[str, Any]:

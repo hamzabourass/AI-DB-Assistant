@@ -122,43 +122,7 @@ def render_vector_db_cleanup_page():
                                     time.sleep(1)
                                     st.rerun()
                     
-                    with col2:
-                        if category_counts:
-                            category_to_delete = st.selectbox(
-                                "Supprimer tous les fichiers d'une catégorie",
-                                options=list(category_counts.keys())
-                            )
-                            
-                            count_in_category = category_counts.get(category_to_delete, 0)
-                            
-                            if st.button(f"Supprimer tous les fichiers ({count_in_category}) de la catégorie {category_to_delete}"):
-                                confirm = st.checkbox(
-                                    f"Je confirme vouloir supprimer TOUS les fichiers de type '{category_to_delete}'",
-                                    key="confirm_category_delete"
-                                )
-                                
-                                if confirm:
-                                    with st.spinner(f"Suppression des fichiers de catégorie {category_to_delete}..."):
-                                        result = delete_files_by_category(category_to_delete)
-                                    
-                                    if "error" in result:
-                                        st.error(f"Erreur: {result['error']}")
-                                    else:
-                                        st.success(result.get("message", "Fichiers supprimés avec succès"))
-                                        time.sleep(1)
-                                        st.rerun()
                     
-                    st.subheader("Sauvegarde")
-                    
-                    if st.button("Créer une sauvegarde de tous les fichiers"):
-                        with st.spinner("Création de la sauvegarde..."):
-                            result = backup_knowledge_files()
-                        
-                        if "error" in result:
-                            st.error(f"Erreur: {result['error']}")
-                        else:
-                            st.success(result.get("message", "Sauvegarde créée avec succès"))
-    
     with tab2:
         st.header("Gestion de la Base de Données Vectorielle")
         

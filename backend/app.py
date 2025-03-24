@@ -534,7 +534,7 @@ async def upload_video_for_transcription(
         raise HTTPException(status_code=503, detail="Video transcription service not initialized.")
     
     # Validate file type
-    allowed_extensions = ['.mp4', '.avi', '.mov', '.mkv', '.webm']
+    allowed_extensions = ['.mp4', '.avi', '.mov', '.mkv', '.webm', '.mp3', '.wav', '.ogg', '.m4a']
     file_extension = os.path.splitext(file.filename)[1].lower()
     
     if file_extension not in allowed_extensions:

@@ -5,14 +5,14 @@ from utils.api import upload_video_for_transcription, list_transcriptions, get_t
 
 def render_video_transcription_page():
     """Displays the video transcription page."""
-    st.title("Transcription de Vidéos")
+    st.title("Transcription de Vidéos et audio")
     
     # Create tabs
     tab1, tab2, tab3 = st.tabs(["Télécharger", "Liste des Transcriptions", "Recherche"])
     
     # Upload tab
     with tab1:
-        st.header("Télécharger une vidéo pour transcription")
+        st.header("Télécharger une vidéo ou un audio pour transcription")
         
         # Model selection
         model_size = st.selectbox(
@@ -22,11 +22,10 @@ def render_video_transcription_page():
             help="Les modèles plus grands sont plus précis mais plus lents et demandent plus de ressources."
         )
         
-        # Upload widget
         uploaded_file = st.file_uploader(
-            "Choisissez un fichier vidéo",
-            type=["mp4", "avi", "mov", "mkv", "webm"],
-            help="Formats supportés: MP4, AVI, MOV, MKV, WebM"
+            "Choisissez un fichier vidéo ou audio",
+            type=["mp4", "avi", "mov", "mkv", "webm", "mp3", "wav", "ogg", "m4a"],
+            help="Formats supportés: Vidéo (MP4, AVI, MOV, MKV, WebM) ou Audio (MP3, WAV, OGG, M4A)"
         )
         
         if uploaded_file is not None:
@@ -68,8 +67,8 @@ def render_video_transcription_page():
             st.markdown("""
             ### Processus de transcription
             
-            1. **Téléchargement**: Votre vidéo est téléchargée vers le serveur
-            2. **Extraction audio**: L'audio est extrait de la vidéo
+            1. **Téléchargement**: Votre vidéo ou audio est téléchargée vers le serveur
+            2. **Extraction audio**: L'audio est extrait de la vidéo si c'est video
             3. **Transcription**: Le modèle Whisper transcrit l'audio en texte
             4. **Indexation**: La transcription est ajoutée à la base de connaissances vectorielle
             5. **RAG**: La transcription peut maintenant être utilisée pour répondre à vos questions

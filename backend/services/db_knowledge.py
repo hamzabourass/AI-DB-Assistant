@@ -1,4 +1,5 @@
 """Service pour répondre aux questions sur les bases de données."""
+import os
 from models.llm import LLMService
 from services.vector_db import VectorDBService
 import uuid
@@ -74,36 +75,63 @@ Fournis un résumé concis qui capture les informations essentielles."""
             
             conversation_history = self.format_conversation_history(messages)
             
-            if len(conversation_history) > 2000:  # Ajustez le seuil si nécessaire
+            if len(conversation_history) > 2000:  
                 conversation_history = self.summarize_conversation(conversation_history)
             
-            docs = []
-            if self.vector_db.db:
-                docs = self.vector_db.db.similarity_search(question, k=5) 
+            docs = self.vector_db.search(question, k=5)
             
-            context = "\n\n".join([doc.page_content for doc in docs]) if docs else ""
+            print(f"DOCUMENTS TROUVÉS: {len(docs)}")
             
-            if context:
+            enriched_context = ""
+            if docs:
+                for i, doc in enumerate(docs, 1):
+                    source = doc.metadata.get('source', 'Source inconnue')
+                    source_name = os.path.basename(source) if isinstance(source, str) else source
+                    enriched_context += f"\n--- DOCUMENT {i} (Source: {source_name}) ---\n"
+                    enriched_context += doc.page_content
+                    enriched_context += "\n"
+            
+            print("\n" + "="*50)
+            print(f"QUESTION: {question}")
+            print("-"*50)
+            print("-"*50)
+            print("CONTEXTE ENRICHI:")
+            print(enriched_context if enriched_context else "AUCUN CONTEXTE TROUVÉ")
+            
+            if docs:
+                print("-"*50)
+                print("SOURCES:")
+                for i, doc in enumerate(docs):
+                    source = doc.metadata.get('source', 'Inconnue')
+                    score = doc.metadata.get('similarity_score', 'N/A')
+                    print(f"  Document {i+1}: {source} (Score: {score})")
+            
+            print("-"*50)
+            print("HISTORIQUE DE CONVERSATION:")
+            print(conversation_history if conversation_history else "AUCUN HISTORIQUE")
+            print("="*50 + "\n")
+            
+            if enriched_context:
                 prompt = f"""Tu es un expert en bases de données SQL. Utilise les documents récupérés suivants et l'historique de conversation pour répondre à la question.
 
-Documents Récupérés:
-{context}
+    Documents Récupérés:
+    {enriched_context}
 
-Historique de Conversation:
-{conversation_history}
+    Historique de Conversation:
+    {conversation_history}
 
-Question: {question}
+    Question: {question}
 
-Fournis une réponse claire, précise et utile en français."""
+    Fournis une réponse claire, précise et utile en français. Si pertinent, cite les sources des informations en te référant aux numéros des documents."""
             else:
                 prompt = f"""Tu es un expert en bases de données et SQL. Réponds à la question suivante sur les bases de données, SQL ou la gestion de données, en tenant compte de l'historique de conversation.
 
-Historique de Conversation:
-{conversation_history}
+    Historique de Conversation:
+    {conversation_history}
 
-Question: {question}
+    Question: {question}
 
-Fournis une réponse claire, précise et utile en français."""
+    Fournis une réponse claire, précise et utile en français."""
             
             # Génère une réponse en utilisant le LLM
             answer = self.llm_service.generate_text(prompt, temperature)
@@ -113,5 +141,5 @@ Fournis une réponse claire, précise et utile en français."""
         except Exception as e:
             import traceback
             print(f"Erreur dans le service de connaissances DB avec contexte: {e}")
-            print(traceback.format_exc())  # Affiche la trace complète pour le débogage
+            print(traceback.format_exc())  
             return f"Erreur lors de la génération d'une réponse: {str(e)}"

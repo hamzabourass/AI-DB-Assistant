@@ -331,6 +331,7 @@ async def upload_knowledge_document(file: UploadFile = File(...)):
         # success = vector_db_service.index_documents()
         
         if success:
+            db_knowledge_service.vector_db.reload_index()
             return {"message": f"Document {file.filename} téléchargé et indexé avec succès"}
         else:
             # Si l'indexation échoue, supprimer le fichier téléchargé

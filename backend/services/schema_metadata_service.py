@@ -13,7 +13,7 @@ class SchemaMetadataService:
             "tables": f"{self.base_url}/tables",
             "views": f"{self.base_url}/views",
             "indexes": f"{self.base_url}/indexes",
-            "foreign_keys": f"{self.base_url}/foreign_keys"
+            "foreign_keys": f"{self.base_url}/foreign_keys",
         }
         self.cache = {}  # Simple in-memory cache
         self.cache_ttl = 3600  # Cache time-to-live in seconds (1 hour)
@@ -45,8 +45,6 @@ class SchemaMetadataService:
     
     def get_table_columns(self, table_name: str) -> List[Dict[str, Any]]:
         """Get columns for a specific table."""
-        # This would normally be another endpoint, but we'll mock it for now
-        # In a real implementation, you'd call a specific endpoint for columns
         table = self.get_table_info(table_name)
         if table and "columns" in table:
             return table["columns"]
@@ -85,25 +83,58 @@ class SchemaMetadataService:
         
         # Fetch fresh data
         try:
+            print(f"Fetching {endpoint_key}")
             url = self.endpoints[endpoint_key]
-            response = requests.get(url, timeout=10)
+            print(f"url {url}")
+            
+            # Add headers that mimic a browser
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'application/json, text/plain, */*',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Connection': 'keep-alive',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            }
+            
+            # Create a session to maintain cookies
+            session = requests.Session()
+            
+            # Use a shorter timeout
+            response = session.get(url, headers=headers, timeout=30)
+            print(f"Response status: {response.status_code}")
             
             if response.status_code == 200:
-                data = response.json()
-                # Extract the actual items - adjust based on the actual response structure
-                items = data.get("items", [])
-                
-                # Update cache
-                self.cache[endpoint_key] = items
-                self.last_fetched[endpoint_key] = current_time
-                
-                return items
+                try:
+                    # Update cache
+                    # self.cache[endpoint_key] = response
+                    # self.last_fetched[endpoint_key] = current_time
+                    print(f"Successfully fetched {len(response) if isinstance(response, list) else 'data'}")
+                    return response.text
+                except json.JSONDecodeError as e:
+                    print(f"Error decoding JSON response: {str(e)}")
+                    print(f"Response content: {response.text[:100]}...")  # Print the first 100 chars
+                    return self.cache.get(endpoint_key, [])
             else:
                 print(f"Error fetching {endpoint_key}: {response.status_code}")
-                # Return cached data if available, or empty list
+                print(f"Response content: {response.text[:100]}...")
                 return self.cache.get(endpoint_key, [])
         
+        except requests.exceptions.ConnectionError as e:
+            print(f"Connection error fetching {endpoint_key}: {str(e)}")
+            # Try to provide more specific error information
+            if "RemoteDisconnected" in str(e):
+                print("The server closed the connection unexpectedly. This could be due to:")
+                print("- Server timing out the request")
+                print("- Firewall or proxy issues")
+                print("- Server rejecting the request format")
+            return self.cache.get(endpoint_key, [])
+            
+        except requests.exceptions.Timeout:
+            print(f"Request timed out for {endpoint_key}")
+            return self.cache.get(endpoint_key, [])
+            
         except Exception as e:
             print(f"Exception fetching {endpoint_key}: {e}")
-            # Return cached data if available, or empty list
             return self.cache.get(endpoint_key, [])

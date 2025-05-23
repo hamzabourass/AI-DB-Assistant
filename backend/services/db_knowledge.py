@@ -1,5 +1,6 @@
 """Service pour répondre aux questions sur les bases de données."""
 import os
+import os
 from models.llm import LLMService
 from services.vector_db import VectorDBService
 import uuid
@@ -104,7 +105,7 @@ Documents disponibles:
 Conversation:
 {conversation_history}
 
-Question: {question}
+    Question: {question}
 
 Instructions:
 - Réponds en français
@@ -120,7 +121,7 @@ Réponse:"""
 Conversation:
 {conversation_history}
 
-Question: {question}
+    Question: {question}
 
 Réponds en français en utilisant tes connaissances générales sur les bases de données SQL:"""
             
@@ -132,5 +133,6 @@ Réponds en français en utilisant tes connaissances générales sur les bases d
         except Exception as e:
             import traceback
             print(f"Erreur dans le service de connaissances DB avec contexte: {e}")
+            print(traceback.format_exc())  
             print(traceback.format_exc())  
             return f"Erreur lors de la génération d'une réponse: {str(e)}"

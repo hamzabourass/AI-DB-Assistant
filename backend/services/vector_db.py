@@ -146,7 +146,22 @@ class VectorDBService:
             print(f"Erreur lors de l'indexation des documents : {e}")
             return False
     
-    # [Le reste de la classe reste inchangé]
+    def reload_index(self):
+        """Recharge l'index depuis le disque."""
+        try:
+            if os.path.exists(os.path.join(self.index_path, "index.faiss")):
+                self.db = FAISS.load_local(
+                    self.index_path, 
+                    self.embeddings, 
+                    allow_dangerous_deserialization=True
+                )
+                print("Index vectoriel rechargé avec succès")
+                return True
+            return False
+        except Exception as e:
+            print(f"Erreur lors du rechargement de l'index: {e}")
+            return False
+        
     def clear_and_reindex(self, documents_directory="./knowledge"):
         """Effacer l'index existant et réindexer tous les documents."""
         try:
@@ -165,7 +180,7 @@ class VectorDBService:
             return False
     
     def search(self, query, k=4):
-        """Rechercher des documents pertinents en fonction de la requête."""
+        """Rechercher des documents pertinents en fonction de la requête avec métadonnées complètes."""
         try:
             if self.db is None:
                 print("Base de données vectorielle non initialisée. Indexation des documents...")
@@ -173,8 +188,30 @@ class VectorDBService:
                 if not success:
                     return []
             
-            docs = self.db.similarity_search(query, k=k)
-            return docs
+            docs_and_scores = self.db.similarity_search_with_score(query, k=k)
+            
+            enhanced_docs = []
+            for doc, score in docs_and_scores:
+                source_path = doc.metadata.get("source", "Source inconnue")
+                
+                if os.path.exists(source_path):
+                    file_stats = os.stat(source_path)
+                    file_name = os.path.basename(source_path)
+                    file_extension = os.path.splitext(file_name)[1].lower()
+                    
+                    doc.metadata.update({
+                        "file_name": file_name,
+                        "file_extension": file_extension,
+                        "file_size_bytes": file_stats.st_size,
+                        "last_modified": file_stats.st_mtime,
+                        "similarity_score": float(score)
+                    })
+                else:
+                    doc.metadata["similarity_score"] = float(score)
+                
+                enhanced_docs.append(doc)
+            
+            return enhanced_docs
         except Exception as e:
             print(f"Erreur lors de la recherche de documents : {e}")
             return []

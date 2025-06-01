@@ -34,7 +34,7 @@ def answer_db_question(question, conversation_id=None, messages=None):
         response = requests.post(
             f"{API_URL}/api/knowledge",
             json=payload,
-            timeout=60 # Longer timeout for knowledge answers
+            timeout=3600
         )
         
         if response.status_code == 200:
@@ -93,7 +93,7 @@ def get_chat(conversation_id):
     try:
         response = requests.get(
             f"{API_URL}/api/chat/{conversation_id}",
-            timeout=5
+            timeout=60
         )
         
         if response.status_code == 200:
@@ -119,7 +119,7 @@ def create_new_chat():
     try:
         response = requests.post(
             f"{API_URL}/api/chat/new",
-            timeout=5
+            timeout=60
         )
         
         if response.status_code == 200:
@@ -164,7 +164,7 @@ def get_vector_db_documents(limit=100, offset=0):
     try:
         response = requests.get(
             f"{API_URL}/api/vector-db/documents?limit={limit}&offset={offset}",
-            timeout=10
+            timeout=600
         )
         
         if response.status_code == 200:
@@ -185,7 +185,7 @@ def get_vector_db_document(doc_id):
     try:
         response = requests.get(
             f"{API_URL}/api/vector-db/document/{doc_id}",
-            timeout=10
+            timeout=600
         )
         
         if response.status_code == 200:
@@ -207,7 +207,7 @@ def search_vector_db(query, k=5):
         response = requests.post(
             f"{API_URL}/api/vector-db/search",
             params={"query": query, "k": k},
-            timeout=10
+            timeout=1600
         )
         
         if response.status_code == 200:
@@ -250,7 +250,7 @@ def upload_knowledge_document(file):
         response = requests.post(
             f"{API_URL}/api/vector-db/upload",
             files=files,
-            timeout=60  # Timeout plus long pour les téléchargements
+            timeout=3600
         )
         
         if response.status_code == 200:
@@ -271,7 +271,7 @@ def list_knowledge_files():
     try:
         response = requests.get(
             f"{API_URL}/api/vector-db/cleanup/files",
-            timeout=10
+            timeout=600
         )
         
         if response.status_code == 200:
@@ -292,7 +292,7 @@ def backup_knowledge_files():
     try:
         response = requests.post(
             f"{API_URL}/api/vector-db/cleanup/backup",
-            timeout=30  # Longer timeout for backup
+            timeout=600  # Longer timeout for backup
         )
         
         if response.status_code == 200:
@@ -314,7 +314,7 @@ def delete_knowledge_file(file_path):
         response = requests.delete(
             f"{API_URL}/api/vector-db/cleanup/file",
             params={"file_path": file_path},
-            timeout=10
+            timeout=600
         )
         
         if response.status_code == 200:
@@ -335,7 +335,7 @@ def delete_files_by_category(category):
     try:
         response = requests.delete(
             f"{API_URL}/api/vector-db/cleanup/category/{category}",
-            timeout=10
+            timeout=600
         )
         
         if response.status_code == 200:
@@ -356,7 +356,7 @@ def clear_vector_db():
     try:
         response = requests.post(
             f"{API_URL}/api/vector-db/cleanup/clear-db",
-            timeout=10
+            timeout=600
         )
         
         if response.status_code == 200:
@@ -377,7 +377,7 @@ def reindex_knowledge():
     try:
         response = requests.post(
             f"{API_URL}/api/vector-db/cleanup/reindex",
-            timeout=60  # Longer timeout for reindexing
+            timeout=600 # Longer timeout for reindexing
         )
         
         if response.status_code == 200:
@@ -398,7 +398,7 @@ def clear_all_knowledge():
     try:
         response = requests.post(
             f"{API_URL}/api/vector-db/cleanup/clear-all",
-            timeout=30  # Longer timeout for complete cleanup
+            timeout=3600  # Longer timeout for complete cleanup
         )
         
         if response.status_code == 200:
@@ -428,7 +428,7 @@ def upload_video_for_transcription(file, model_size="base"):
             f"{API_URL}/api/video-transcription/upload",
             files=files,
             data=data,
-            timeout=300  # Longer timeout for video processing
+            timeout=3600 # Longer timeout for video processing
         )
         
         if response.status_code == 200:
@@ -449,7 +449,7 @@ def list_transcriptions():
     try:
         response = requests.get(
             f"{API_URL}/api/video-transcription/list",
-            timeout=10
+            timeout=600
         )
         
         if response.status_code == 200:
@@ -470,7 +470,7 @@ def get_transcription(transcription_id):
     try:
         response = requests.get(
             f"{API_URL}/api/video-transcription/{transcription_id}",
-            timeout=10
+            timeout=600
         )
         
         if response.status_code == 200:

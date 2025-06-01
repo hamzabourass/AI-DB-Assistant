@@ -185,7 +185,8 @@ Fournis un résumé concis qui capture les informations essentielles."""
             Generated response from LLM
         """
         # Format schema data for the LLM
-        formatted_schema = self._organize_schema_data(schema_data, classification)
+        #formatted_schema = self._organize_schema_data(schema_data, classification)
+        formatted_schema = schema_data
         # Create prompt for LLM
         prompt = f"""Tu es un expert en bases de données SQL qui aide à comprendre le schéma de base de données.
 L'utilisateur a posé la question suivante sur le schéma de la base de données:

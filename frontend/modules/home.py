@@ -108,43 +108,7 @@ def render_home_page():
         </div>
         """, unsafe_allow_html=True)
     
-    # Carte d'état du système
-    st.markdown("""
-    <h2 style="margin-top: 30px; margin-bottom: 20px;">État du Système</h2>
-    """, unsafe_allow_html=True)
-    
-    api_status = check_api_status()
-    
-    if api_status["connected"]:
-        status_color = "#e6f4ea"
-        status_text_color = "#137333"
-        status_message = "✅ L'API Backend est connectée et fonctionne correctement"
-    else:
-        status_color = "#fce8e6"
-        status_text_color = "#c5221f"
-        status_message = "❌ Impossible de se connecter à l'API Backend"
-    
-    st.markdown(f"""
-    <div style="
-        padding: 20px; 
-        border-radius: 8px; 
-        background-color: {status_color}; 
-        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        margin-bottom: 20px;
-        color: {status_text_color};
-    ">
-        <h3 style="color: {status_text_color};">État du Système</h3>
-        <p style="font-weight: 500;">{status_message}</p>
-        
-        {"" if api_status["connected"] else """
-        <p><strong>Veuillez vérifier :</strong></p>
-        <ul>
-            <li>Le serveur API est en cours d'exécution sur http://localhost:8000</li>
-            <li>Les connexions réseau et les paramètres de pare-feu</li>
-        </ul>
-        """}
-    </div>
-    """, unsafe_allow_html=True)
+   
     
     # Carte de démarrage rapide
     st.markdown("""

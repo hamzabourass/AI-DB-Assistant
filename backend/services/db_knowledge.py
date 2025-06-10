@@ -277,15 +277,24 @@ N'invente pas d'informations qui ne sont pas présentes dans les données fourni
             if enriched_context:
                 prompt = f"""Tu es un expert en bases de données SQL. Utilise les documents récupérés suivants et l'historique de conversation pour répondre à la question.
 
-        Documents Récupérés:
-        {enriched_context}
+Documents Récupérés:
+{enriched_context}
+**Très important :** Mentionner les sources des informations en gras en te référant le nom des documents utilisés.
 
-        Historique de Conversation:
-        {conversation_history}
 
-        Question: {question}
+Historique de Conversation:
+{conversation_history}
 
-        Fournis une réponse claire, précise et utile en français. Si pertinent, cite les sources des informations en te référant aux numéros des documents."""
+Question: {question}
+
+Fournis une réponse claire, précise et utile en français. Si pertinent, cite les sources des informations en te référant aux numéros des documents. Si les sources ne sont pas utilisées pour répondre à la question, réponds normalement.
+
+**Très important :** Si les documents récupérés ne contiennent pas d’informations pertinentes pour répondre à la question, indique-le clairement en répondant :
+"En me basant sur les documents disponibles, je n’ai trouvé aucune information pertinente pour répondre à cette question."
+
+Ne fais pas d’hypothèses et n’utilise pas de connaissances extérieures aux documents fournis.
+"""
+
             else:
                 prompt = f"""Tu es un expert en bases de données et SQL. Réponds à la question suivante sur les bases de données, SQL ou la gestion de données, en tenant compte de l'historique de conversation.
 

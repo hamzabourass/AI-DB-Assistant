@@ -2,6 +2,7 @@
 import os
 import pickle
 import numpy as np
+from services.document_ocr_service import DocumentOCRService
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -22,16 +23,12 @@ class VectorDBService:
     
     def __init__(self, persist_directory="./database/vector_db"):
         """Initialiser le service de base de données vectorielle."""
-        # Créer le répertoire s'il n'existe pas
         os.makedirs(persist_directory, exist_ok=True)
         
-        # Chemin pour stocker l'index FAISS
         self.index_path = os.path.join(persist_directory, "faiss_index")
         
-        # Initialiser le modèle d'embedding (modèle local, pas d'API nécessaire)
         self.embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
         
-        # Essayer de charger la base de données existante
         if os.path.exists(os.path.join(self.index_path, "index.faiss")):
             try:
                 self.db = FAISS.load_local(
@@ -46,21 +43,75 @@ class VectorDBService:
         else:
             self.db = None
             print("Aucune base de données vectorielle existante trouvée")
+        try:
+            self.ocr_service = DocumentOCRService()
+            print("OCR service initialized for document processing")
+        except Exception as e:
+            print(f"Warning: OCR service could not be initialized: {e}")
+            self.ocr_service = None
+    
+    def _process_document_with_ocr(self, file_path: str) -> str:
+        """
+        Process a document and extract text from images if OCR is available.
+        
+        Args:
+            file_path: Path to the document file
+            
+        Returns:
+            Extracted text from images, or empty string if no OCR or no text found
+        """
+        if not self.ocr_service:
+            return ""
+        
+        try:
+            if self.ocr_service.should_process_for_images(file_path):
+                print(f"Checking for images in: {file_path}")
+                
+                ocr_text = self.ocr_service.process_document_with_ocr(file_path)
+                
+                if ocr_text.strip():
+                    print(f"Extracted {len(ocr_text)} characters from images in {file_path}")
+                    return ocr_text
+                else:
+                    print(f"No text found in images within {file_path}")
+            
+        except Exception as e:
+            print(f"Error during OCR processing of {file_path}: {e}")
+        
+        return ""
     
     def _get_loader_for_file(self, file_path):
         """
         Obtenir le chargeur approprié selon le type de fichier.
+        Modified to include OCR processing for documents with images.
         """
         file_extension = os.path.splitext(file_path)[1].lower()
         
         try:
-            # Sélectionner le chargeur approprié selon l'extension
             if file_extension == '.pdf':
                 print(f"Utilisation de PyPDFLoader pour {file_path}")
-                return PyPDFLoader(file_path)
+                
+                ocr_text = self._process_document_with_ocr(file_path)
+                
+                loader = PyPDFLoader(file_path)
+                
+                if ocr_text:
+                    setattr(loader, '_ocr_text', ocr_text)
+                
+                return loader
+                
             elif file_extension in ['.docx', '.doc']:
                 print(f"Utilisation de Docx2txtLoader pour {file_path}")
-                return Docx2txtLoader(file_path)
+                
+                ocr_text = self._process_document_with_ocr(file_path)
+                
+                loader = Docx2txtLoader(file_path)
+                
+                if ocr_text:
+                    setattr(loader, '_ocr_text', ocr_text)
+                
+                return loader
+                
             elif file_extension == '.csv':
                 print(f"Utilisation de CSVLoader pour {file_path}")
                 return CSVLoader(file_path)
@@ -68,15 +119,12 @@ class VectorDBService:
                 print(f"Utilisation de JSONLoader pour {file_path}")
                 return JSONLoader(file_path=file_path, jq_schema='.', text_content=False)
             else:
-                # Pour les fichiers texte et autres formats
                 try:
-                    # Tenter d'utiliser l'encodage utf-8
                     print(f"Utilisation de TextLoader (utf-8) pour {file_path}")
                     return TextLoader(file_path, encoding='utf-8')
                 except Exception as e:
                     print(f"Erreur avec encodage utf-8 pour {file_path}: {e}")
                     try:
-                        # Si utf-8 échoue, essayer avec latin-1 (plus permissif)
                         print(f"Utilisation de TextLoader (latin-1) pour {file_path}")
                         return TextLoader(file_path, encoding='latin-1')
                     except Exception as e2:
@@ -87,8 +135,7 @@ class VectorDBService:
             return None
 
     def index_documents(self, documents_directory="./knowledge"):
-        """Indexer les documents du répertoire spécifié."""
-        # Créer le répertoire s'il n'existe pas
+        """Indexer les documents du répertoire spécifié avec OCR intégré."""
         os.makedirs(documents_directory, exist_ok=True)
         
         try:
@@ -112,6 +159,23 @@ class VectorDBService:
                             if loader:
                                 # Charger les documents
                                 documents = loader.load()
+                                
+                                # Check if we have OCR text to append
+                                if hasattr(loader, '_ocr_text') and loader._ocr_text:
+                                    print(f"Appending OCR text to documents from {file_path}")
+                                    
+                                    # Create a new document with OCR text
+                                    from langchain.schema import Document
+                                    ocr_document = Document(
+                                        page_content=f"=== EXTRACTED TEXT FROM IMAGES ===\n\n{loader._ocr_text}",
+                                        metadata={
+                                            "source": file_path,
+                                            "type": "ocr_extracted",
+                                            "original_file": os.path.basename(file_path)
+                                        }
+                                    )
+                                    documents.append(ocr_document)
+                                
                                 all_documents.extend(documents)
                                 print(f"Chargé {len(documents)} segments depuis {file_path}")
                         except Exception as e:

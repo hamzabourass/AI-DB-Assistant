@@ -323,16 +323,21 @@ async def upload_knowledge_document(file: UploadFile = File(...)):
         
         print(f"Fichier sauvegardé: {file_path}")
         
-        # Réindexer la base de données vectorielle
-        # Option 1: Réindexation complète (plus fiable mais plus lente)
-        success = vector_db_service.clear_and_reindex()
+        # Check if file might contain images
+        has_images = False
+        if vector_db_service.ocr_service and vector_db_service.ocr_service.should_process_for_images(file_path):
+            has_images = True
+            print(f"Document may contain images - OCR will be applied during indexing")
         
-        # Option 2: Ajouter uniquement le nouveau document
-        # success = vector_db_service.index_documents()
+        # Réindexer la base de données vectorielle (now includes OCR processing)
+        success = vector_db_service.clear_and_reindex()
         
         if success:
             db_knowledge_service.vector_db.reload_index()
-            return {"message": f"Document {file.filename} téléchargé et indexé avec succès"}
+            message = f"Document {file.filename} téléchargé et indexé avec succès"
+            if has_images:
+                message += " (incluant l'extraction de texte des images)"
+            return {"message": message}
         else:
             # Si l'indexation échoue, supprimer le fichier téléchargé
             os.remove(file_path)
@@ -348,8 +353,6 @@ async def upload_knowledge_document(file: UploadFile = File(...)):
             status_code=500,
             content={"error": f"Erreur lors du téléchargement du document : {str(e)}"}
         )
-
-
 
 @app.get("/api/vector-db/cleanup/files")
 async def list_knowledge_files():

@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import time
 import io
+import os
 from utils.api import (
     get_vector_db_stats, 
     get_vector_db_documents, 
@@ -59,16 +60,24 @@ def render_vector_db_explorer_page():
         
         accepted_formats = ["txt", "pdf", "docx", "md", "csv", "json", "xml", "html"]
         
+        # UPDATED: Enhanced format information with OCR capabilities
         with st.expander("Formats de fichiers supportés"):
             st.markdown("""
             L'indexation vectorielle peut traiter les formats suivants :
             - **Texte brut** (.txt)
-            - **Documents structurés** (.pdf, .docx)
+            - **Documents structurés** (.pdf, .docx) 
+              - ✨ *Extraction automatique du texte des images incluses via OCR*
             - **Données structurées** (.csv, .json, .xml)
             - **Contenu web** (.html)
             - **Documentation** (.md)
             
-            Note : Les fichiers volumineux peuvent prendre plus de temps à indexer.
+            **🔍 Nouvelle fonctionnalité OCR :**
+            - Les PDFs et documents Word contenant des images avec du texte seront automatiquement traités
+            - Le texte des images sera extrait et indexé avec le reste du document
+            - Ceci inclut les diagrammes, screenshots, schémas de base de données, et images scannées
+            - Prend en charge plusieurs langues (anglais, français, etc.)
+            
+            Note : Les fichiers avec images peuvent prendre plus de temps à indexer en raison du traitement OCR.
             """)
         
         uploaded_file = st.file_uploader(
@@ -88,19 +97,56 @@ def render_vector_db_explorer_page():
             for k, v in file_details.items():
                 st.write(f"- **{k}:** {v}")
             
+            # UPDATED: Check if file might contain images for OCR processing
+            file_extension = os.path.splitext(uploaded_file.name)[1].lower()
+            might_have_images = file_extension in ['.pdf', '.docx', '.doc']
+            
+            # UPDATED: Show OCR information if applicable
+            if might_have_images:
+                st.info("📷 Ce type de fichier peut contenir des images. Si c'est le cas, le texte sera automatiquement extrait via OCR.")
+            
             if uploaded_file.type.startswith("text/") or uploaded_file.name.endswith(".txt"):
                 if st.checkbox("Prévisualiser le contenu"):
                     content = uploaded_file.getvalue().decode("utf-8")
                     st.text_area("Aperçu du contenu", value=content[:1000] + ("..." if len(content) > 1000 else ""), height=200)
             
+            # UPDATED: Enhanced upload button with OCR status
             if st.button("Télécharger et Indexer le Document"):
-                with st.spinner(f"Téléchargement et indexation de {uploaded_file.name}..."):
+                # Show different spinner message based on file type
+                spinner_message = f"Téléchargement et indexation de {uploaded_file.name}..."
+                if might_have_images:
+                    spinner_message += " (incluant traitement OCR des images)"
+                
+                with st.spinner(spinner_message):
                     result = upload_knowledge_document(uploaded_file)
                 
                 if "error" in result:
                     st.error(f"Erreur lors du téléchargement du document : {result['error']}")
                 else:
-                    st.success(result.get("message", "Document téléchargé avec succès"))
+                    message = result.get("message", "Document téléchargé avec succès")
+                    
+                    # UPDATED: Enhanced success message with OCR status
+                    if "incluant l'extraction de texte des images" in message:
+                        st.success("✅ " + message)
+                        st.info("🔍 Du texte a été trouvé et extrait des images dans votre document ! Vous pouvez maintenant rechercher ce contenu.")
+                        
+                        # Show additional info about OCR processing
+                        with st.expander("ℹ️ Détails du traitement OCR"):
+                            st.markdown("""
+                            **Traitement effectué :**
+                            - ✅ Images extraites du document
+                            - ✅ Texte reconnu via OCR (Optical Character Recognition)
+                            - ✅ Contenu indexé dans la base de données vectorielle
+                            - ✅ Prêt pour la recherche et les questions
+                            
+                            Vous pouvez maintenant utiliser l'**Assistant Base de Données** pour poser des questions 
+                            sur le contenu textuel ET sur le texte extrait des images !
+                            """)
+                    else:
+                        st.success("✅ " + message)
+                        if might_have_images:
+                            st.info("ℹ️ Aucune image avec du texte lisible détectée dans ce document.")
+                    
                     st.cache_data.clear()
                     time.sleep(1)
                     st.rerun()
@@ -154,17 +200,43 @@ def render_vector_db_explorer_page():
             
             if documents:
                 for doc in documents:
-                    with st.expander(f"Document : {doc.get('id', 'Inconnu')}"):
-                        st.markdown("#### Métadonnées")
-                        metadata = doc.get("metadata", {})
+                    # UPDATED: Enhanced document display with OCR indicator
+                    doc_metadata = doc.get("metadata", {})
+                    doc_title = doc.get('id', 'Inconnu')
+                    
+                    # Check if this is an OCR-extracted document
+                    is_ocr_content = doc_metadata.get("type") == "ocr_extracted"
+                    
+                    if is_ocr_content:
+                        doc_title = f"📷 OCR: {doc_metadata.get('original_file', 'Image extraite')}"
+                    
+                    with st.expander(f"Document : {doc_title}"):
+                        # UPDATED: Show OCR indicator in metadata
+                        if is_ocr_content:
+                            st.warning("🔍 Ce contenu a été extrait d'images via OCR")
                         
-                        for key, value in metadata.items():
-                            st.write(f"**{key}:** {value}")
+                        st.markdown("#### Métadonnées")
+                        
+                        for key, value in doc_metadata.items():
+                            # Make OCR-specific metadata more readable
+                            if key == "type" and value == "ocr_extracted":
+                                st.write(f"**Type:** Texte extrait d'images (OCR)")
+                            elif key == "original_file":
+                                st.write(f"**Fichier source:** {value}")
+                            else:
+                                st.write(f"**{key}:** {value}")
                         
                         st.markdown("#### Contenu")
+                        content = doc.get("content", "Aucun contenu disponible")
+                        
+                        # Show preview for OCR content
+                        if is_ocr_content and content.startswith("=== EXTRACTED TEXT FROM IMAGES ==="):
+                            content = content.replace("=== EXTRACTED TEXT FROM IMAGES ===", "").strip()
+                            st.info("📝 Aperçu du texte extrait des images :")
+                        
                         st.text_area(
                             "Contenu du document",
-                            value=doc.get("content", "Aucun contenu disponible"),
+                            value=content,
                             height=200,
                             label_visibility="collapsed"
                         )
@@ -173,6 +245,12 @@ def render_vector_db_explorer_page():
     
     with tab3:
         st.header("Rechercher dans la Base de Données Vectorielle")
+        
+        # UPDATED: Add information about OCR content in search
+        st.markdown("""
+        🔍 **Recherche intelligente** : Cette recherche inclut maintenant le contenu extrait des images 
+        via OCR (diagrammes, schémas, texte scanné, etc.) en plus du texte traditionnel.
+        """)
         
         query = st.text_input("Entrez votre requête de recherche :")
         k = st.slider("Nombre de résultats :", min_value=1, max_value=20, value=5)
@@ -193,17 +271,39 @@ def render_vector_db_explorer_page():
                         similarity = result.get("similarity_score", 0)
                         similarity_percentage = (1 - similarity) * 100
                         
-                        with st.expander(f"Résultat {i+1} - Similarité : {similarity_percentage:.2f}%"):
+                        # UPDATED: Check if result is from OCR content
+                        metadata = result.get("metadata", {})
+                        is_ocr_result = metadata.get("type") == "ocr_extracted"
+                        
+                        result_title = f"Résultat {i+1} - Similarité : {similarity_percentage:.2f}%"
+                        if is_ocr_result:
+                            result_title += " 📷 (Contenu OCR)"
+                        
+                        with st.expander(result_title):
+                            # UPDATED: Show OCR indicator for search results
+                            if is_ocr_result:
+                                st.success("🔍 Ce résultat provient du texte extrait d'images via OCR")
+                            
                             st.markdown("#### Métadonnées")
-                            metadata = result.get("metadata", {})
                             
                             for key, value in metadata.items():
-                                st.write(f"**{key}:** {value}")
+                                if key == "type" and value == "ocr_extracted":
+                                    st.write(f"**Type:** Texte extrait d'images (OCR)")
+                                elif key == "original_file":
+                                    st.write(f"**Fichier source:** {value}")
+                                else:
+                                    st.write(f"**{key}:** {value}")
                             
                             st.markdown("#### Contenu")
+                            content = result.get("content", "Aucun contenu disponible")
+                            
+                            # Clean up OCR content display
+                            if is_ocr_result and content.startswith("=== EXTRACTED TEXT FROM IMAGES ==="):
+                                content = content.replace("=== EXTRACTED TEXT FROM IMAGES ===", "").strip()
+                            
                             st.text_area(
                                 f"Contenu du document {i}",
-                                value=result.get("content", "Aucun contenu disponible"),
+                                value=content,
                                 height=200,
                                 label_visibility="collapsed"
                             )

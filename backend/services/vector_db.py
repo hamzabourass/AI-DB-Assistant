@@ -210,6 +210,71 @@ class VectorDBService:
             print(f"Erreur lors de l'indexation des documents : {e}")
             return False
     
+
+    def index_single_document(self, file_path):
+        """Index a single document without clearing the entire database."""
+        try:
+            print(f"Indexing single document: {file_path}")
+            
+            loader = self._get_loader_for_file(file_path)
+            if not loader:
+                print(f"No suitable loader found for {file_path}")
+                return False
+            
+            documents = loader.load()
+            print(f"Loaded {len(documents)} document segments from {file_path}")
+            
+            if not documents:
+                print(f"No content extracted from {file_path}")
+                return False
+            
+            if hasattr(self, 'ocr_service') and self.ocr_service:
+                try:
+                    if self.ocr_service.should_process_for_images(file_path):
+                        print(f"Applying OCR to extract text from images in {file_path}")
+                        ocr_text = self.ocr_service.process_document_with_ocr(file_path)
+                        
+                        if ocr_text.strip():
+                            from langchain.schema import Document
+                            ocr_doc = Document(
+                                page_content=ocr_text,
+                                metadata={
+                                    "source": file_path,
+                                    "extraction_method": "OCR",
+                                    "file_name": os.path.basename(file_path)
+                                }
+                            )
+                            documents.append(ocr_doc)
+                            print(f"Added OCR-extracted text ({len(ocr_text)} characters)")
+                except Exception as ocr_error:
+                    print(f"OCR processing failed for {file_path}: {ocr_error}")
+            
+            text_splitter = RecursiveCharacterTextSplitter(
+                chunk_size=1000,
+                chunk_overlap=200
+            )
+            splits = text_splitter.split_documents(documents)
+            print(f"Split into {len(splits)} chunks")
+            
+            if self.db is None:
+                print("Creating new vector database")
+                self.db = FAISS.from_documents(splits, self.embeddings)
+            else:
+                print("Adding to existing vector database")
+                new_db = FAISS.from_documents(splits, self.embeddings)
+                self.db.merge_from(new_db)
+            
+            self.db.save_local(self.index_path)
+            print(f"Successfully indexed single document: {file_path}")
+            
+            return True
+        
+        except Exception as e:
+            print(f"Error indexing single document {file_path}: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+    
     def reload_index(self):
         """Recharge l'index depuis le disque."""
         try:

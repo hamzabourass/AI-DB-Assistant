@@ -20,6 +20,8 @@ Une application moderne combinant interface Streamlit et intelligence artificiel
   - [Page d'accueil](#page-daccueil)
   - [Assistant Base de Données](#assistant-base-de-données)
   - [Explorateur BDD Vectorielle](#explorateur-bdd-vectorielle)
+  - [OCR et Extraction de Texte](#ocr-et-extraction-de-texte)
+  - [Transcription Audio/Vidéo](#transcription-audiovideo)
   - [Maintenance Vectorielle](#maintenance-vectorielle)
 - [Architecture RAG (Retrieval Augmented Generation)](#architecture-rag-retrieval-augmented-generation)
 - [Technologies utilisées](#technologies-utilisées)
@@ -36,6 +38,8 @@ L'application utilise une architecture moderne avec un backend FastAPI et un fro
 
 - **Assistant Base de Données** : Posez des questions sur les concepts de base de données, SQL et les techniques d'optimisation
 - **Explorateur de Base Vectorielle** : Visualisez, recherchez et téléchargez des documents dans la base de connaissances vectorielle
+- **OCR Intelligent** : Extraction automatique de texte à partir d'images dans les documents (PDF, DOCX)
+- **Transcription Audio/Vidéo** : Conversion automatique de contenu multimédia en texte indexable
 - **Support multiformat** : Importation de connaissances à partir de divers formats de fichiers (TXT, PDF, DOCX, CSV, etc.)
 - **Maintenance vectorielle** : Interface d'administration pour gérer les fichiers de connaissances et optimiser la base vectorielle
 
@@ -55,6 +59,8 @@ La communication entre les deux modules se fait via des appels API REST.
 - Python 3.9+ 
 - pip (gestionnaire de packages Python)
 - Accès à l'API Groq (ou autre service de LLM compatible)
+- FFmpeg (pour la transcription vidéo)
+- Tesseract OCR (optionnel, pour améliorer l'extraction de texte)
 
 ### Installation
 
@@ -106,7 +112,272 @@ cd ../backend
 GROQ_API_KEY=votre_clé_api_groq
 
 ```
+### Configuration avec Groq (Recommandé pour la performance)
 
+Groq offre un accès rapide aux modèles LLM dans le cloud :
+1. Créez un compte sur [console.groq.com](https://console.groq.com/)
+2. Générez une clé API dans la section "API Keys"
+3. Ajoutez la clé dans votre fichier `.env`
+
+### Configuration avec Ollama (Alternative locale)
+
+Pour utiliser Ollama en local (gratuit mais plus lent) :
+
+#### Installation d'Ollama
+```bash
+# Linux/WSL
+curl -fsSL https://ollama.com/install.sh | sh
+
+# macOS
+brew install ollama
+
+# Windows : Téléchargez depuis ollama.com
+```
+
+#### Démarrage et configuration
+```bash
+# Démarrer le service
+ollama serve
+
+# Dans un nouveau terminal, télécharger le modèle
+ollama pull llama3.2:3b
+
+# Vérifier l'installation
+ollama list
+```
+
+#### Modèles recommandés
+```bash
+# Pour de meilleures performances (si vous avez assez de RAM)
+ollama pull llama3.2:8b     # 8B paramètres - Beaucoup mieux
+ollama pull qwen2.5:7b      # 7B paramètres - Très bon
+ollama pull mistral:7b      # 7B paramètres - Excellent pour le français
+```
+
+Puis modifiez votre `.env` :
+```env
+LOCAL_MODEL_NAME=llama3.2:8b  # ou le modèle choisi
+```
+
+## Conteneurisation Oracle + APEX avec uc-local-apex-dev
+
+Ce projet GitHub propose une installation prête à l'emploi d'Oracle XE 23c + APEX + ORDS dans des conteneurs Docker, pour un environnement de développement local.
+
+## Prérequis
+
+- **Docker Desktop** doit être installé et en cours d'exécution sur votre machine
+- Git (pour cloner le dépôt)
+
+## Étapes détaillées d'installation
+
+### 1. Cloner le dépôt
+
+```bash
+git clone https://github.com/United-Codes/uc-local-apex-dev.git
+cd uc-local-apex-dev
+```
+
+### 2. Initialiser l'environnement
+
+Dans la ligne de commande PowerShell ou CMD, lancez le script :
+
+```bash
+./setup.sh
+```
+
+> **Note :** Ce script prépare les dossiers, permissions et volumes nécessaires pour Docker.
+
+### 3. Démarrer les conteneurs
+
+Lancez la commande suivante pour démarrer les conteneurs :
+
+```bash
+docker compose up -d
+```
+
+Cette commande va :
+- Démarrer Oracle XE avec APEX installé
+- Configurer ORDS pour accéder à APEX via HTTP
+- L'installation initiale peut durer plusieurs minutes
+
+### 4. Surveiller l'installation
+
+Pour suivre le processus d'installation en temps réel :
+
+```bash
+docker compose logs -f ords
+```
+
+Attendez un message de confirmation comme **"ORDS started"**.
+
+### Configuration Oracle APEX (Optionnel - pour les métadonnées de schéma)
+
+Si vous souhaitez interroger les métadonnées de votre base de données Oracle APEX :
+
+#### Configuration du Workspace et API REST
+
+1. **Accéder à APEX** : http://localhost:8080/ords
+   - Cliquez sur "OK" pour Oracle APEX
+   - Connectez-vous avec : Workspace `INTERNAL`, User `ADMIN`, Password `Welcome_1`
+
+2. **Créer un workspace** :
+   
+   a) Cliquez sur "Manage Workspaces" dans la page d'accueil :
+   ![Manage Workspaces](/docs/screenshots/workspapce1.png)
+   
+   b) Cliquez sur "Create Workspace" :
+   ![Create Workspace](/docs/screenshots/workspace2.png)
+   
+   c) Remplissez les informations de création :
+   ![Workspace Info](/docs/screenshots/workspace3.png)
+   
+   d) Sélectionnez "Non" pour utiliser un schéma existant et remplissez le nom :
+   ![Schema Creation](/docs/screenshots/workspace4.png)
+   
+   e) Créez les identifiants du workspace :
+   ![Workspace Credentials](/docs/screenshots/workspace5.png)
+
+3. **Se connecter au nouveau workspace** :
+   
+   Déconnectez-vous du compte admin et connectez-vous avec le workspace créé :
+   ![Workspace Login](/docs/screenshots/workspace6.png)
+
+4. **Importer des données d'exemple** :
+   
+   a) Allez dans "SQL Workshop" :
+   ![SQL Workshop](/docs/screenshots/workspace7.png)
+   
+   b) Cliquez sur "Utilities" → "Sample Datasets" et téléchargez une base de données
+
+5. **Créer l'API REST pour les métadonnées** :
+   
+   a) Dans "SQL Workshop" → "RESTful Services" et activez REST pour le schéma :
+   ![Enable REST](/docs/screenshots/workspace8.png)
+   
+   b) Dans le sidebar à gauche, cliquez sur "Modules" :
+   ![Modules](/docs/screenshots/module.png)
+   
+   c) Cliquez sur "Create Module" :
+   ![Create Module](/docs/screenshots/createModule.png)
+   
+   d) Donnez un nom au module et le base path :
+   ![Module Info](/docs/screenshots/remplireModule.png)
+   
+   e) Dans le module, cliquez sur "Create Template" :
+   ![Create Template](/docs/screenshots/createTemplate.png)
+   
+   f) Remplissez l'URI template qui représente la ressource à retourner :
+   ![Template Info](/docs/screenshots/remplireTemplate.png)
+   
+   g) Dans le template, créez un handler :
+   ![Create Handler](/docs/screenshots/createHandler.png)
+   
+   h) Remplissez les informations du handler et ajoutez le script PL/SQL :
+   ![Handler Info](/docs/screenshots/remplireHandler.png)
+
+```sql
+DECLARE
+  v_schema VARCHAR2(30) := USER;
+  v_table_count NUMBER;
+BEGIN
+  APEX_JSON.INITIALIZE_OUTPUT(p_http_header => TRUE);
+  APEX_JSON.OPEN_OBJECT;
+  
+  SELECT COUNT(*) INTO v_table_count FROM user_tables;
+  
+  APEX_JSON.WRITE('schema', v_schema);
+  APEX_JSON.WRITE('total_tables', v_table_count);
+  
+  APEX_JSON.OPEN_ARRAY('tables');
+  FOR t IN (SELECT table_name, num_rows FROM user_tables ORDER BY table_name) LOOP
+    APEX_JSON.OPEN_OBJECT;
+    APEX_JSON.WRITE('name', t.table_name);
+    APEX_JSON.WRITE('rows', NVL(t.num_rows, 0));
+    
+    APEX_JSON.OPEN_ARRAY('columns');
+    FOR c IN (
+      SELECT column_name, data_type, column_id
+      FROM user_tab_columns
+      WHERE table_name = t.table_name
+      AND column_id <= 5
+      ORDER BY column_id
+    ) LOOP
+      APEX_JSON.OPEN_OBJECT;
+      APEX_JSON.WRITE('name', c.column_name);
+      APEX_JSON.WRITE('type', c.data_type);
+      APEX_JSON.CLOSE_OBJECT;
+    END LOOP;
+    APEX_JSON.CLOSE_ARRAY;
+    
+    APEX_JSON.CLOSE_OBJECT;
+  END LOOP;
+  APEX_JSON.CLOSE_ARRAY;
+  
+  APEX_JSON.CLOSE_OBJECT;
+  
+EXCEPTION
+  WHEN OTHERS THEN
+    APEX_JSON.INITIALIZE_OUTPUT(p_http_header => TRUE);
+    APEX_JSON.OPEN_OBJECT;
+    APEX_JSON.WRITE('error', SQLERRM);
+    APEX_JSON.CLOSE_OBJECT;
+END;
+```
+
+5. **Tester l'API** :
+   
+   Prenez l'URL complète et testez l'endpoint :
+   ![Full URL](/docs/screenshots/fullURL.png)
+   
+   Résultat de l'appel API :
+   ![API Result](/docs/screenshots/appel.png)
+
+6. **Configurer le backend** :
+   
+   Dans `backend/services/schema_metadata_service.py`, mettez à jour l'URL :
+   ```python
+   self.base_url = "http://localhost:8080/ords/restworkspace/schema"
+   ```
+
+#### Option 2 : Connexion à une instance existante
+
+Si vous avez déjà Oracle APEX déployé :
+```python
+self.base_url = "http://votre-apex-server:port/ords/votre-workspace/schema"
+```
+
+**Note importante :** La fonctionnalité APEX est optionnelle. L'application fonctionne parfaitement sans elle en utilisant uniquement la base vectorielle pour répondre aux questions sur les bases de données.
+
+## Commandes utiles
+
+### Gestion des conteneurs
+
+```bash
+# Démarrer les conteneurs
+docker compose up -d
+
+# Arrêter les conteneurs
+docker compose down
+
+# Voir les logs en temps réel
+docker compose logs -f
+
+# Voir le statut des conteneurs
+docker compose ps
+
+# Redémarrer les services
+docker compose restart
+```
+
+### Accès aux bases de données
+
+```bash
+# Se connecter à Oracle XE via SQL*Plus dans le conteneur
+docker compose exec oracle sqlplus sys/Welcome_1@XE as sysdba
+
+# Accéder au shell du conteneur Oracle
+docker compose exec oracle bash
+```
 ### Initialisation de la base vectorielle
 
 Pour initialiser la base de données vectorielle avec des connaissances de base sur les bases de données :
@@ -121,9 +392,6 @@ Nous avons créé le schéma de données Customer Order à partir de deux datase
 
 ![alt text](/docs/apexdataset.png)
 Le fichier du schéma se trouve dans le dossier : `/backend/knowledge/`
-
-
-
 
 
 ### Installation de FFmpeg
@@ -177,6 +445,28 @@ Pour vérifier que FFmpeg est correctement installé, exécutez :
 ffmpeg -version
 ```
 
+### Installation de Tesseract OCR (Optionnel)
+
+Tesseract améliore la qualité d'extraction de texte des images. Installation selon votre système :
+
+#### Windows
+```powershell
+# Avec Chocolatey
+choco install tesseract
+
+# Ou téléchargement manuel depuis:
+# https://github.com/UB-Mannheim/tesseract/wiki
+```
+
+#### macOS
+```bash
+brew install tesseract tesseract-lang
+```
+
+#### Linux (Ubuntu/Debian)
+```bash
+sudo apt install tesseract-ocr tesseract-ocr-fra
+```
 
 ## Utilisation
 
@@ -277,43 +567,39 @@ L'Explorateur de Base de Données Vectorielle vous permet de :
 
 ![Recherche vectorielle](/docs/screenshots/search.png)
 
-### Maintenance Vectorielle
+### OCR et Extraction de Texte
 
-![Maintenance Vectorielle](/docs/screenshots/maintenance.png)
+#### Architecture OCR
+![alt text](/docs/Architecture_OCR.png)
+Le module OCR (Optical Character Recognition) permet d'extraire automatiquement le texte des images contenues dans vos documents :
 
-La page de Maintenance Vectorielle est un outil d'administration permettant de :
+#### Fonctionnalités OCR
+- **Extraction automatique** : Le texte des images dans les PDF et DOCX est automatiquement extrait lors du téléchargement
+- **Multi-moteurs** : Utilise EasyOCR et Tesseract pour une précision optimale
+- **Multi-langues** : Support du français, anglais, espagnol, allemand
+- **Prétraitement intelligent** : Amélioration automatique de la qualité des images pour une meilleure reconnaissance
+- **Indexation transparente** : Le texte extrait est automatiquement ajouté à la base vectorielle
 
-#### Onglet Fichiers de Connaissance
-- **Voir tous les fichiers** présents dans la base de connaissances
-- **Filtrer les fichiers** par catégorie
-- **Supprimer des fichiers** individuellement ou par catégorie
-- **Créer des sauvegardes** de tous les fichiers
+#### Types d'images supportées
+- **Documents scannés** : Anciennes factures, contrats, lettres
+- **Diagrammes** : Schémas de base de données, organigrammes
+- **Screenshots** : Captures d'écran de code, interfaces, erreurs
+- **Certificats** : Diplômes, attestations, certifications
+- **Notes manuscrites** : Notes de réunion, croquis annotés
 
-**Pour supprimer un fichier** :
-1. Sélectionnez le fichier dans la liste déroulante
-2. Cliquez sur "Supprimer le fichier sélectionné"
-3. Confirmez la suppression
+#### Processus OCR automatique
+1. **Détection** : Le système détecte automatiquement les images dans les documents téléchargés
+2. **Extraction** : Les images sont extraites du document
+3. **Prétraitement** : Amélioration de contraste, réduction du bruit, binarisation
+4. **Reconnaissance** : Application de multiples moteurs OCR avec différents paramètres
+5. **Sélection** : Choix du meilleur résultat basé sur la confiance
+6. **Indexation** : Intégration du texte extrait dans la base vectorielle
 
-![Gestion des fichiers](/docs/screenshots/files.png)
-
-#### Onglet Base Vectorielle
-- **Vider la base vectorielle** sans supprimer les fichiers source
-- **Réindexer tous les fichiers** pour reconstruire la base vectorielle
-- **Consulter les statistiques** détaillées de la base vectorielle
-- **Voir des recommandations** pour optimiser les performances
-
-![Gestion de la base vectorielle](/docs/screenshots/vectordb.png)
-![Gestion de la base vectorielle](/docs/screenshots/vectordb2.png)
-
-#### Onglet Réinitialisation Complète
-- **Réinitialiser entièrement** le système (avec création automatique d'une sauvegarde)
-- **Supprimer tous les fichiers** et vider la base vectorielle
-- **Accéder aux informations de diagnostic** pour résoudre les problèmes
-
-**Attention** : Cette section contient des actions destructives qui ne peuvent pas être annulées. Utilisez avec précaution !
-
-![Réinitialisation du système](/docs/screenshots/reset.png)
-
+#### Indicateurs de qualité
+- **Scores de confiance** : Pourcentage de fiabilité de l'extraction
+- **Méthode utilisée** : Quel moteur OCR a donné le meilleur résultat
+- **Taille d'image** : Résolution des images traitées
+- **Langue détectée** : Langue(s) reconnue(s) dans le texte
 
 ### Transcription Audio et Vidéo
 
@@ -357,6 +643,43 @@ Le module de Transcription Audio et Vidéo vous permet de :
 - Les modèles plus grands sont plus précis mais nécessitent plus de ressources
 - La transcription s'intègre automatiquement à la base de connaissances et devient interrogeable
 
+### Maintenance Vectorielle
+
+![Maintenance Vectorielle](/docs/screenshots/maintenance.png)
+
+La page de Maintenance Vectorielle est un outil d'administration permettant de :
+
+#### Onglet Fichiers de Connaissance
+- **Voir tous les fichiers** présents dans la base de connaissances
+- **Filtrer les fichiers** par catégorie
+- **Supprimer des fichiers** individuellement ou par catégorie
+- **Créer des sauvegardes** de tous les fichiers
+
+**Pour supprimer un fichier** :
+1. Sélectionnez le fichier dans la liste déroulante
+2. Cliquez sur "Supprimer le fichier sélectionné"
+3. Confirmez la suppression
+
+![Gestion des fichiers](/docs/screenshots/files.png)
+
+#### Onglet Base Vectorielle
+- **Vider la base vectorielle** sans supprimer les fichiers source
+- **Réindexer tous les fichiers** pour reconstruire la base vectorielle
+- **Consulter les statistiques** détaillées de la base vectorielle
+- **Voir des recommandations** pour optimiser les performances
+
+![Gestion de la base vectorielle](/docs/screenshots/vectordb.png)
+![Gestion de la base vectorielle](/docs/screenshots/vectordb2.png)
+
+#### Onglet Réinitialisation Complète
+- **Réinitialiser entièrement** le système (avec création automatique d'une sauvegarde)
+- **Supprimer tous les fichiers** et vider la base vectorielle
+- **Accéder aux informations de diagnostic** pour résoudre les problèmes
+
+**Attention** : Cette section contient des actions destructives qui ne peuvent pas être annulées. Utilisez avec précaution !
+
+![Réinitialisation du système](/docs/screenshots/reset.png)
+
 ## Architecture RAG (Retrieval Augmented Generation)
 
 L'Assistant de Base de Données utilise l'architecture RAG (Retrieval Augmented Generation) pour améliorer la qualité des réponses générées par le modèle de langage. Voici comment fonctionne le processus :
@@ -364,6 +687,7 @@ L'Assistant de Base de Données utilise l'architecture RAG (Retrieval Augmented 
 Le diagramme ci-dessous illustre les interactions entre les différents composants du système:
 
 ![Diagramme d'interactions du système](./docs/image.png)
+
 1. **Indexation des documents** :
    - Les documents de connaissance sont divisés en chunks de taille appropriée
    - Chaque chunk est transformé en embedding vectoriel avec le modèle HuggingFace "all-MiniLM-L6-v2"
@@ -395,6 +719,18 @@ Cette architecture permet à l'assistant de fournir des réponses plus précises
 - **HuggingFace Embeddings** : Modèles de transformation de texte en vecteurs
 - **Groq API** : Service d'inférence pour les grands modèles de langage
 
+#### Technologies OCR
+- **EasyOCR** : Moteur OCR moderne basé sur l'IA, précis et multi-langue
+- **Tesseract** : Moteur OCR traditionnel open-source de Google (optionnel)
+- **OpenCV** : Bibliothèque de vision par ordinateur pour le prétraitement d'images
+- **Pillow (PIL)** : Manipulation et amélioration d'images Python
+- **PyMuPDF (fitz)** : Extraction d'images et de texte à partir de documents PDF
+- **python-docx** : Traitement de documents Word pour l'extraction d'images
+
+#### Technologies de Transcription
+- **Whisper** : Modèle de transcription automatique de la parole d'OpenAI
+- **FFmpeg** : Traitement et conversion de fichiers multimédia
+
 ### Frontend
 - **Streamlit** : Framework pour créer des applications frontend avec python
 - **Pandas** : Manipulation et analyse de données
@@ -408,7 +744,11 @@ Cette architecture permet à l'assistant de fournir des réponses plus précises
 - **FAISS** offre des performances exceptionnelles pour la recherche vectorielle à grande échelle
 - **Langchain** simplifie l'intégration des LLM dans les workflows d'applications
 - **Groq API** fournit un accès rapide aux LLM 
+- **Model local llama3.2 3b** petit model qui marche sur le CPU
 - **HuggingFace Embeddings** permettent d'utiliser des modèles d'embedding locaux, sans dépendance à des API externes
+- **EasyOCR** combine précision et facilité d'utilisation pour l'extraction de texte multi-langue
+- **Whisper** offre une transcription de haute qualité pour de nombreuses langues
+- **OpenCV** et **Pillow** permettent un prétraitement d'images sophistiqué pour améliorer la qualité OCR
 
 ## Structure du projet
 
@@ -419,18 +759,50 @@ assistant-bdd-ia/
 │   ├── database/                # Stockage des bases de données SQLite et vectorielles
 │   │   └── backups/             # Sauvegardes des fichiers de connaissance
 │   ├── knowledge/               # Documents de connaissance à indexer
+│   │   ├── ocr_texts/           # Textes extraits par OCR (généré automatiquement)
+│   │   └── transcriptions/      # Transcriptions audio/vidéo (généré automatiquement)
 │   ├── models/                  # Modèles de données et de requêtes
 │   ├── scripts/                 # Scripts utilitaires (initialisation, maintenance)
-│   └── services/                # Services métier (SQL, RAG, historique)
+│   └── services/                # Services métier
+│       ├── vector_db.py         # Service de base vectorielle principal
+│       ├── document_ocr_service.py  # Service OCR pour extraction de texte
+│       ├── video_transcription.py   # Service de transcription audio/vidéo
+│       ├── db_knowledge.py      # Service RAG principal
 │       └── vector_db_cleanup.py # Service de nettoyage de la base vectorielle
 ├── frontend/
 │   ├── app.py                   # Point d'entrée de l'application Streamlit
 │   ├── modules/                 # Modules de l'interface utilisateur
-│   │   └── vector_db_cleanup.py # Interface de maintenance vectorielle
+│   │   ├── vector_db_explorer.py   # Interface d'exploration avec support OCR
+│   │   ├── video_transcription.py  # Interface de transcription
+│   │   └── vector_db_cleanup.py    # Interface de maintenance vectorielle
 │   └── utils/                   # Utilitaires (connexion API, styles)
 ├── docs/
 │   ├── image.png                # Diagramme d'architecture
+│   ├── ocr_architecture.png     # Diagramme d'architecture OCR
 │   └── screenshots/             # Captures d'écran de l'application
 └── README.md                    # Documentation du projet
 ```
 
+## Maintenance de la base vectorielle
+
+La maintenance régulière de la base vectorielle est importante pour maintenir des performances optimales :
+
+### Indexation OCR
+- Les textes extraits par OCR sont automatiquement indexés lors du téléchargement de documents
+- Le système détecte automatiquement les images dans les PDF et DOCX
+- Les résultats OCR sont marqués avec des métadonnées spéciales pour identification
+
+### Surveillance de la qualité OCR
+- Surveillez les scores de confiance dans les logs
+- Les textes avec une confiance < 0.3 ne sont pas indexés automatiquement
+- Réajustez les paramètres de prétraitement si nécessaire
+
+### Optimisation des performances
+- Les documents avec de nombreuses images peuvent augmenter le temps d'indexation
+- Utilisez des images de bonne qualité pour de meilleurs résultats OCR
+- Considérez l'upgrade vers un GPU pour accélérer EasyOCR
+
+### Nettoyage périodique
+- Supprimez les anciens textes OCR peu fiables
+- Réindexez périodiquement pour optimiser la base vectorielle
+- Utilisez l'interface de maintenance pour surveiller l'espace disque

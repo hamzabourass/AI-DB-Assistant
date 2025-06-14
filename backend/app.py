@@ -323,16 +323,21 @@ async def upload_knowledge_document(file: UploadFile = File(...)):
         
         print(f"Fichier sauvegardé: {file_path}")
         
-        # Réindexer la base de données vectorielle
-        # Option 1: Réindexation complète (plus fiable mais plus lente)
-        success = vector_db_service.clear_and_reindex()
+        # Check if file might contain images
+        has_images = False
+        if vector_db_service.ocr_service and vector_db_service.ocr_service.should_process_for_images(file_path):
+            has_images = True
+            print(f"Document may contain images - OCR will be applied during indexing")
         
-        # Option 2: Ajouter uniquement le nouveau document
-        # success = vector_db_service.index_documents()
+        # Réindexer la base de données vectorielle (now includes OCR processing)
+        success = vector_db_service.clear_and_reindex()
         
         if success:
             db_knowledge_service.vector_db.reload_index()
-            return {"message": f"Document {file.filename} téléchargé et indexé avec succès"}
+            message = f"Document {file.filename} téléchargé et indexé avec succès"
+            if has_images:
+                message += " (incluant l'extraction de texte des images)"
+            return {"message": message}
         else:
             # Si l'indexation échoue, supprimer le fichier téléchargé
             os.remove(file_path)
@@ -348,8 +353,6 @@ async def upload_knowledge_document(file: UploadFile = File(...)):
             status_code=500,
             content={"error": f"Erreur lors du téléchargement du document : {str(e)}"}
         )
-
-
 
 @app.get("/api/vector-db/cleanup/files")
 async def list_knowledge_files():
@@ -522,45 +525,114 @@ async def clear_all_knowledge():
             content={"error": f"Error clearing all knowledge: {str(e)}"}
         )
 
-@app.post("/api/video-transcription/upload")
-async def upload_video_for_transcription(
-    file: UploadFile = File(...),
-    model_size: str = Form("base")
-):
-    """Upload a video file for transcription and add to the knowledge base."""
+@app.post("/api/vector-db/upload")
+async def upload_knowledge_document(file: UploadFile = File(...)):
+    """Télécharger un document de connaissance vers la base de données vectorielle."""
     if not service_initialized:
-        raise HTTPException(status_code=503, detail="Services not initialized. Check API key.")
-    
-    if not video_transcription_service:
-        raise HTTPException(status_code=503, detail="Video transcription service not initialized.")
-    
-    # Validate file type
-    allowed_extensions = ['.mp4', '.avi', '.mov', '.mkv', '.webm', '.mp3', '.wav', '.ogg', '.m4a']
-    file_extension = os.path.splitext(file.filename)[1].lower()
-    
-    if file_extension not in allowed_extensions:
-        return JSONResponse(
-            status_code=400,
-            content={"error": f"Unsupported file type. Allowed extensions: {', '.join(allowed_extensions)}"}
-        )
+        raise HTTPException(status_code=503, detail="Services non initialisés. Vérifiez la clé API.")
     
     try:
-        # Process the video and get the transcription
-        result = video_transcription_service.transcribe_video(file, model_size)
+        # Liste des extensions autorisées
+        allowed_extensions = ['.txt', '.pdf', '.docx', '.doc', '.md', '.csv', '.json', '.xml', '.html']
         
-        return {
-            "message": f"Video {file.filename} transcribed and indexed successfully",
-            "details": result
-        }
+        # Vérifier l'extension du fichier
+        file_extension = os.path.splitext(file.filename)[1].lower()
+        if file_extension not in allowed_extensions:
+            return JSONResponse(
+                status_code=400,
+                content={"error": f"Type de fichier non pris en charge. Extensions autorisées : {', '.join(allowed_extensions)}"}
+            )
+        
+        # Créer le répertoire knowledge s'il n'existe pas
+        knowledge_dir = "./knowledge"
+        os.makedirs(knowledge_dir, exist_ok=True)
+        
+        # DEBUG: Show files before upload
+        print(f"\n=== DEBUG: Files in knowledge directory BEFORE upload ===")
+        existing_files = []
+        if os.path.exists(knowledge_dir):
+            for existing_file in os.listdir(knowledge_dir):
+                file_path = os.path.join(knowledge_dir, existing_file)
+                if os.path.isfile(file_path):
+                    size = os.path.getsize(file_path)
+                    existing_files.append(f"{existing_file} ({size} bytes)")
+                    print(f"  EXISTING FILE: {existing_file} ({size} bytes)")
+        print(f"Total existing files: {len(existing_files)}")
+        print("=" * 50)
+        
+        # Enregistrer le fichier téléchargé
+        file_path = os.path.join(knowledge_dir, file.filename)
+        
+        with open(file_path, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+        
+        print(f"NEW FILE SAVED: {file_path}")
+        
+        # DEBUG: Show files after upload
+        print(f"\n=== DEBUG: Files in knowledge directory AFTER upload ===")
+        current_files = []
+        for current_file in os.listdir(knowledge_dir):
+            file_path_check = os.path.join(knowledge_dir, current_file)
+            if os.path.isfile(file_path_check):
+                size = os.path.getsize(file_path_check)
+                current_files.append(f"{current_file} ({size} bytes)")
+                print(f"  CURRENT FILE: {current_file} ({size} bytes)")
+        print(f"Total current files: {len(current_files)}")
+        print("=" * 50)
+        
+        # Check if file might contain images
+        has_images = False
+        if hasattr(vector_db_service, 'ocr_service') and vector_db_service.ocr_service and vector_db_service.ocr_service.should_process_for_images(file_path):
+            has_images = True
+            print(f"Document may contain images - OCR will be applied during indexing")
+        
+        # OPTION 1: Process only the new file (RECOMMENDED)
+        print(f"\n=== PROCESSING ONLY NEW FILE: {file.filename} ===")
+        try:
+            # Try to index only the new file
+            success = vector_db_service.index_single_document(file_path)
+            
+            if success:
+                db_knowledge_service.vector_db.reload_index()
+                message = f"Document {file.filename} téléchargé et indexé avec succès (traitement individuel)"
+                if has_images:
+                    message += " (incluant l'extraction de texte des images)"
+                return {"message": message}
+            else:
+                print("Single file indexing failed, falling back to full reindex")
+                # Fall back to full reindex if single file fails
+                success = vector_db_service.clear_and_reindex()
+        except AttributeError:
+            print("index_single_document method not available, using full reindex")
+            # Fall back to full reindex if method doesn't exist
+            success = vector_db_service.clear_and_reindex()
+        
+        # OPTION 2: Full reindex (FALLBACK)
+        if not success:
+            print(f"\n=== FALLING BACK TO FULL REINDEX ===")
+            success = vector_db_service.clear_and_reindex()
+        
+        if success:
+            db_knowledge_service.vector_db.reload_index()
+            message = f"Document {file.filename} téléchargé et indexé avec succès"
+            if has_images:
+                message += " (incluant l'extraction de texte des images)"
+            return {"message": message}
+        else:
+            # Si l'indexation échoue, supprimer le fichier téléchargé
+            os.remove(file_path)
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Échec de l'indexation du document"}
+            )
     except Exception as e:
         import traceback
-        print(f"Error transcribing video: {str(e)}")
+        print(f"Erreur lors du téléchargement du document : {str(e)}")
         print(traceback.format_exc())
         return JSONResponse(
             status_code=500,
-            content={"error": f"Error transcribing video: {str(e)}"}
+            content={"error": f"Erreur lors du téléchargement du document : {str(e)}"}
         )
-
 @app.get("/api/video-transcription/list")
 async def list_transcriptions():
     """List all available video transcriptions."""

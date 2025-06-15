@@ -61,10 +61,9 @@ class ExcelTableOCRService:
                 features["grid_confidence"] = min((h_line_ratio + v_line_ratio) * 1000, 1.0)
             
             # 2. Detect alternating row patterns (Excel's default styling)
-            # This is a simplified approach - would need more sophisticated analysis
             row_samples = []
             height = gray.shape[0]
-            for y in range(0, height, max(1, height//20)):  # Sample 20 horizontal lines
+            for y in range(0, height, max(1, height//20)):
                 if y < height:
                     row_mean = np.mean(gray[y, :])
                     row_samples.append(row_mean)

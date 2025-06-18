@@ -275,36 +275,29 @@ N'invente pas d'informations qui ne sont pas présentes dans les données fourni
             print("="*50 + "\n")
             
             if enriched_context:
-                prompt = f"""Tu es un expert en bases de données SQL. Utilise les documents récupérés suivants et l'historique de conversation pour répondre à la question.
+                prompt = f"""
+Tu es un expert en bases de données et SQL.
 
-Documents Récupérés:
+Ta tâche est de répondre à la question en utilisant uniquement les documents récupérés ci-dessous et l’historique de la conversation.
+
+### Documents récupérés :
 {enriched_context}
-**Très important :** Mentionner les sources des informations en gras en te référant le nom des documents utilisés.
 
-
-Historique de Conversation:
+### Historique de la conversation :
 {conversation_history}
 
-Question: {question}
+### Question :
+{question}
 
-Fournis une réponse claire, précise et utile en français. Si pertinent, cite les sources des informations en te référant aux numéros des documents. Si les sources ne sont pas utilisées pour répondre à la question, réponds normalement.
-
-**Très important :** Si les documents récupérés ne contiennent pas d’informations pertinentes pour répondre à la question, indique-le clairement en répondant :
+### Consignes :
+- Donne une réponse claire, précise et utile, en français.
+- Si tu utilises des informations issues des documents, indique la **source en gras** en mentionnant le nom exact du document utilisé.
+- Si les documents **ne contiennent pas** d’informations utiles, réponds :
 "En me basant sur les documents disponibles, je n’ai trouvé aucune information pertinente pour répondre à cette question."
-
-Ne fais pas d’hypothèses et n’utilise pas de connaissances extérieures aux documents fournis.
+- **Ne cite aucun document que tu n’as pas utilisé.**
+- **N’utilise aucune connaissance externe. utilise votre connaissance seulment si necessaire.** Ne fais pas d’hypothèses.
 """
 
-            else:
-                prompt = f"""Tu es un expert en bases de données et SQL. Réponds à la question suivante sur les bases de données, SQL ou la gestion de données, en tenant compte de l'historique de conversation.
-
-        Historique de Conversation:
-        {conversation_history}
-
-        Question: {question}
-
-        Fournis une réponse claire, précise et utile en français. et si la question etais une salutation repond normalement. Si pertinent, cite les sources des informations en te référant aux numéros des documents."""
-            
             # Génère une réponse en utilisant le LLM
             answer = self.llm_service.generate_text(prompt, temperature)
             
